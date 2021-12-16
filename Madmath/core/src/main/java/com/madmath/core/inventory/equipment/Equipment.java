@@ -30,7 +30,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 
-public abstract class Equipment extends Item {
+public class Equipment extends Item {
 
     public int id;
 
@@ -133,7 +133,7 @@ public abstract class Equipment extends Item {
         if(isSwinging())    return false;
         attackedTargets.clear();
         currencySwingRange = swingRange;
-        sound.play();
+        if(sound!=null)sound.play();
         Runnable attack = () -> {
             Vector2[] vector2s = new Vector2[4];
             for (int i = 0; i < 4; i++) {

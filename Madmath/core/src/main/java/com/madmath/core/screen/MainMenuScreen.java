@@ -50,7 +50,7 @@ public class MainMenuScreen extends AbstractScreen {
         stage.addActor(table);
 
         gametitle = new Image(manager.gametitle200x100);
-        gametitle.setPosition(240,250);
+        gametitle.setPosition(240,270);
         stage.addActor(gametitle);
         gametitle.setZIndex(1);
 
