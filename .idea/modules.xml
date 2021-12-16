@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Madmath/Madmath.iml" filepath="$PROJECT_DIR$/Madmath/Madmath.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Madmath/core/Madmath-core.iml" filepath="$PROJECT_DIR$/Madmath/core/Madmath-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Madmath/desktop/Madmath-desktop.iml" filepath="$PROJECT_DIR$/Madmath/desktop/Madmath-desktop.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/jw08-final-ChinoJunko.iml" filepath="$PROJECT_DIR$/.idea/jw08-final-ChinoJunko.iml" />
+    </modules>
+  </component>
+</project>
