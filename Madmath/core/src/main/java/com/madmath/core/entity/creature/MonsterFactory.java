@@ -18,7 +18,7 @@ public class MonsterFactory {
 
     GameScreen gameScreen;
 
-    static private int monstersNextId = 2000;
+    static private int monstersNextId = 10000;
 
     public MonsterFactory(ResourceManager manager, GameScreen gameScreen){
         this.manager = manager;
