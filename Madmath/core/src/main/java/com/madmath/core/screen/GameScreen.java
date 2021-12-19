@@ -27,6 +27,8 @@ import com.madmath.core.inventory.equipment.EquipmentFactory;
 import com.madmath.core.main.MadMath;
 import com.madmath.core.map.GameMap;
 import com.madmath.core.entity.obstacle.ObstacleFactory;
+import com.madmath.core.network.Client;
+import com.madmath.core.network.Server;
 import com.madmath.core.resource.ResourceManager;
 import com.madmath.core.thread.MonsterThread;
 import com.madmath.core.thread.PlayerThread;
@@ -36,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -62,6 +65,11 @@ public class GameScreen extends AbstractScreen{
     private EquipmentFactory equipmentFactory;
     private ObstacleFactory obstacleFactory;
 
+    public Array<Player> teammate;
+    public boolean isOnline = false;
+    public Client client;
+    public Server server;
+
     Label currencyMapMessage;
 
 
@@ -76,6 +84,8 @@ public class GameScreen extends AbstractScreen{
         super(game, manager);
 
         CurrencyGameScreen = this;
+
+        teammate = new Array<>();
 
         monsterFactory = new MonsterFactory(manager,this);
         monsterManager = new MonsterThread();
@@ -95,7 +105,7 @@ public class GameScreen extends AbstractScreen{
         executorService = Executors.newCachedThreadPool();
         executorService.execute(new PlayerThread());
         executorService.execute(monsterManager);
-        executorService.shutdown();
+        //executorService.shutdown();
 
         setBattleLevel(1);
     }
@@ -137,6 +147,7 @@ public class GameScreen extends AbstractScreen{
         currencyMapMessage.setZIndex(1000);
         player.setPosition(map.getPlayerSpawnPoint());
         try (Output output = new Output(new FileOutputStream("./save/autosave.bin"),50<<10);){
+            game.save.writeTitle(output,map,player);
             game.save.write(output,player);
             game.save.write(output,map);
         } catch (FileNotFoundException e) {
@@ -160,11 +171,29 @@ public class GameScreen extends AbstractScreen{
         stage.addActor(currencyMapMessage);
     }
 
+    public void startGameOnline(){
+        if(isOnline){
+            if(client!=null){
+                resetGame();
+                resetMap();
+                executorService.execute(client);
+                state = State.PAUSE;
+                while(map==null){
+
+                }
+            }else if(server!=null){
+                executorService.execute(server);
+            }
+        }
+    }
+
     public void resetGame(){
         state = State.READY;
         stage.clear();
-        multiplexer.removeProcessor(player.inputProcessor);
-        if(player!=null)    player.dispose();
+        if(player!=null){
+            multiplexer.removeProcessor(player.inputProcessor);
+            player.dispose();
+        }
         player = null;
         hud.reset();
     }
@@ -200,6 +229,9 @@ public class GameScreen extends AbstractScreen{
         stateTime += v;
         currencyDelta = v;
         if(state == State.RUNING){
+            if(!isOnline||server!=null){
+                checkDie();
+            }
             playerSemaphore.release();
             monsterSemaphore.release();
             Sort.instance().sort(stage.getRoot().getChildren(), (o2, o1) -> (int)(o1.getUserObject()==null?
@@ -207,10 +239,6 @@ public class GameScreen extends AbstractScreen{
                             (Float.compare(o1.getY(), o2.getY())): (Float.compare(o1.getY(), o2.getY() + (int) o2.getUserObject()))):
                     o2.getUserObject()==null?
                             (Float.compare(o1.getY()+(int)o1.getUserObject(),o2.getY())):(Float.compare(o1.getY()+(int)o1.getUserObject(),o2.getY()+(int)o2.getUserObject()))));
-            for (int i = monsterManager.monsters.size-1; i >= 0 ; i--) {
-                if(monsterManager.monsters.get(i).getHp()<=0) monsterManager.monsters.get(i).Die();
-            }
-            if(player.getHp()<=0) player.Die();
             stage.act(v);
         }
         update(v);
@@ -219,17 +247,41 @@ public class GameScreen extends AbstractScreen{
         hud.render(v);
     }
 
-    public void createPlayer(){
-        addPlayer(new Player(1000,Player.initPlayerAnim(game.manager),this));
+    public Player createPlayer(){
+        return addPlayer(new Player(1000,Player.initPlayerAnim(game.manager),this));
     }
 
-    public void addPlayer(Player player){
+    public Player addPlayer(Player player){
         if(this.player!=null){
             stage.getActors().removeValue(this.player,true);
         }
         this.player = player;
         stage.addActor(player);
         addInputProcessor(new PlayerInputProcessor(player));
+        return player;
+    }
+
+    public Player addTeammate(Player mate){
+        if((player!=null&&player.getId()==mate.getId())||teammate.select(player1 -> {return player1.getId()==mate.getId();}).iterator().hasNext())  return mate;
+        teammate.add(mate);
+        stage.addActor(mate);
+        return mate;
+    }
+
+    public void checkDie(){
+        Array<Monster> toDie = new Array<>();
+        monsterManager.monsters.forEach((id,monster) -> {
+            if(monster.getHp()<=0){
+                toDie.add(monster);
+            }
+        });
+        toDie.forEach(monster -> {
+            monster.Die();
+        });
+        if(player.getHp()<=0) player.Die();
+        teammate.forEach(mate->{
+            if(mate.getHp()<=0) mate.Die();
+        });
     }
 
     public void createMonsters(float factor) {
@@ -247,6 +299,15 @@ public class GameScreen extends AbstractScreen{
                 e.printStackTrace();
             }
         }
+    }
+
+    @Nullable
+    public Monster generateMonster(int mId, String name) {//alias
+        Monster monster = monsterFactory.generateMonsterByName(name, mId);
+        monsterManager.addMonster(monster);
+        stage.addActor(monster);
+        map.livingEntity.add(monster);
+        return monster;
     }
 
     @Nullable

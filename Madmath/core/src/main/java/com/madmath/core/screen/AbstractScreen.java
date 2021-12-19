@@ -43,6 +43,10 @@ public abstract class AbstractScreen implements Screen {
         return state;
     }
 
+    public void setState(State state) {
+        this.state = state;
+    }
+
     public AbstractScreen(final MadMath game, final ResourceManager manager){
         this.game = game;
         this.manager = manager;

@@ -10,14 +10,20 @@ import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.screen.AbstractScreen;
 import com.madmath.core.screen.GameScreen;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MonsterThread implements Runnable {
 
     GameScreen gameScreen;
 
-    public Array<Monster> monsters;
+    public Map<Integer,Monster> monsters;
+
+    private Array monsterToDie;
 
     public MonsterThread(){
-        monsters = new Array<>();
+        monsters = new HashMap<>();
+        monsterToDie = new Array();
     }
 
     @Override
@@ -28,23 +34,26 @@ public class MonsterThread implements Runnable {
             try {
                 gameScreen.monsterSemaphore.acquire();
                 //act monster
-                monsters.forEach(monster -> {
+                while(monsterToDie.size>0){
+                    Monster monster = (Monster) monsterToDie.pop();
+                    monsters.remove(monster.getId(),monster);
+                }
+                monsters.values().forEach(monster -> {
                     monster.monsterAct(gameScreen.getCurrencyDelta());
                 });
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-
         }
     }
 
     public void addMonster(Monster monster){
-        monsters.add(monster);
+        monsters.put(monster.getId(),monster);
     }
 
-    public boolean removeMonster(Monster monster){
-        return monsters.removeValue(monster,true);
+    public void removeMonster(Monster monster){
+        monsterToDie.add(monster);
     }
 
     public void reset(){

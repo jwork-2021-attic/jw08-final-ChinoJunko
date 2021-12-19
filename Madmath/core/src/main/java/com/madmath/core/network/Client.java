@@ -3,9 +3,11 @@ package com.madmath.core.network;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.madmath.core.entity.creature.Player;
 import com.madmath.core.io.MyInput;
 import com.madmath.core.io.MyOutput;
 import com.madmath.core.main.MadMath;
+import com.madmath.core.screen.AbstractScreen;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -64,18 +66,20 @@ public class Client implements Runnable {
     }
 
     public void loadMap(){
-        System.out.println("Map-"+input.readString());
+        game.save.read(input,"GameMap");
+        game.gameScreen.initMapTitle();
+        game.gameScreen.setState(AbstractScreen.State.PAUSE);
     }
 
     public void loadPlayer(){
-        System.out.println("Player-"+input.readString());
+        game.gameScreen.addTeammate(game.save.readPlayer(input));
     }
 
     public void run() {
         try {
             socketChannel = SocketChannel.open();
             socketChannel.configureBlocking(true);
-            socketChannel.connect(new InetSocketAddress("127.0.0.1", 4397));
+            socketChannel.connect(new InetSocketAddress("127.0.0.1", 4396));
             System.out.println("Connect Successfully!");
 
             writeBuffer = ByteBuffer.allocate(50<<10);
@@ -97,7 +101,9 @@ public class Client implements Runnable {
             output.write(id,()->{
                 output.writeInt(Protocol.PlayerCreate.protocolId);
 
-                output.writeString("AYAYA"+Thread.currentThread().getId());
+                Player player = game.gameScreen.createPlayer();
+                player.setId(1000+id);
+                game.save.write(output,player);
             });
 
             while (true) {
@@ -114,7 +120,7 @@ public class Client implements Runnable {
                     int socketId = input.readInt();
                     //System.out.print("From id:"+socketId+"   Message: ");
                     if(socketId==id){
-                        System.out.println("Pass");
+                        //System.out.println("Pass");
                         input.readBytes(input.readInt());
                         continue;
                     }
@@ -122,15 +128,15 @@ public class Client implements Runnable {
                     //System.out.print("Size-"+input.readInt()+"    ");
                     switch (Protocol.values()[input.readInt()]){
                         case MapCreate:
-                            System.out.print("Map Create: ");
+                            //System.out.print("Map Create: ");
                             loadMap();
                             break;
                         case PlayerCreate:
-                            System.out.print("Player"+socketId+" Create: ");
+                            //System.out.print("Player"+socketId+" Create: ");
                             loadPlayer();
                             break;
                         case PlayerAct:
-                            System.out.println("Player"+socketId+" act:" + input.readString());
+                            //System.out.println("Player"+socketId+" act:");
                             break;
                         case Receive:
                             if(input.readInt()==id){

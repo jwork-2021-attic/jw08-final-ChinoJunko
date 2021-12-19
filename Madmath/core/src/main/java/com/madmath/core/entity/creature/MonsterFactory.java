@@ -26,6 +26,15 @@ public class MonsterFactory {
     }
 
     @Nullable
+    public Monster generateMonsterByName(String name, int id) {
+        int temp = monstersNextId;
+        monstersNextId = id;
+        Monster monster = generateMonsterByName(name);
+        monstersNextId = Math.max(monstersNextId,temp);
+        return monster;
+    }
+
+    @Nullable
     public Monster generateMonsterByName(String name) {
         Iterable<Monster> monsterIter = Monster.monsterSort.select(monster1 -> {
             try {

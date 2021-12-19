@@ -113,7 +113,7 @@ public abstract class Monster extends Creature{
     @Override
     public void Die() {
         super.Die();
-        gameScreen.player.score+=(level*5+gameScreen.map.mapLevel)*gameScreen.map.difficultyFactor;
+        gameScreen.player.score+=(level*50000+gameScreen.map.mapLevel)*gameScreen.map.difficultyFactor;
         //gameScreen.getStage().getActors().removeValue(this,true);
         //gameScreen.getStage().getActors().removeValue(label,true);
         gameScreen.monsterManager.removeMonster(this);

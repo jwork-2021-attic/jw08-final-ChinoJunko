@@ -75,6 +75,10 @@ public class Creature extends Entity {
         this.id = id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     @Override
     public void act(float delta) {
         super.act(delta);

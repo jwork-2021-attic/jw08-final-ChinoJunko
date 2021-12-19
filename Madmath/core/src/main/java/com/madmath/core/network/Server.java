@@ -1,5 +1,6 @@
 package com.madmath.core.network;
 
+import com.madmath.core.entity.creature.Player;
 import com.madmath.core.io.MyInput;
 import com.madmath.core.io.MyOutput;
 import com.madmath.core.main.MadMath;
@@ -90,11 +91,11 @@ public class Server implements Runnable{
         });
     }
 
-    public void writePlayer(){
+    public void writePlayer(Player player){
         tempOutput.write(0,()->{
             tempOutput.writeInt(Protocol.PlayerCreate.protocolId);
 
-            tempOutput.writeString("New Player");
+            game.save.write(tempOutput,player);
         });
     }
 
@@ -103,7 +104,7 @@ public class Server implements Runnable{
         output.clear();
         output.setPosition(position);
         output.writeInt(channelId);
-        output.writeString("New Map");
+        game.save.write(output,game.gameScreen.map);
         output.getByteBuffer().limit(output.position());
         output.setPosition(position);
         channel.write(output.getByteBuffer());
@@ -117,6 +118,17 @@ public class Server implements Runnable{
 
             tempOutput.writeString("Player0 act: " + s);
         });
+    }
+
+    public void syncClient(){
+        writePlayer(game.gameScreen.player);
+        game.gameScreen.teammate.forEach(mate->{
+            writePlayer(mate);
+        });
+    }
+
+    public void loadPlayer(){
+        game.gameScreen.addTeammate(game.save.readPlayer(input));
     }
 
     public void run() {
@@ -145,7 +157,8 @@ public class Server implements Runnable{
                             socketChannel.configureBlocking(false);
                             System.out.println("Client"+channelId+" register");
                             InitClient(socketChannel);
-                            socketChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE,new Integer(channelId++));
+                            socketChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE, channelId++);
+                            syncClient();
                         }
                         if (key.isReadable()) {
                             SocketChannel socketChannel = (SocketChannel) key.channel();
@@ -163,7 +176,7 @@ public class Server implements Runnable{
                                             System.out.println("Player"+pId+" act:" + input.readString());
                                             break;
                                         case PlayerCreate:
-                                            System.out.println("Player create: "+input.readString());
+                                            loadPlayer();
                                             break;
                                         case NewConnect:
                                         default:

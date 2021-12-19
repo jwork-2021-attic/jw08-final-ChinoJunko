@@ -69,9 +69,10 @@ public class Save {
                 }
             }
         }
-        output.writeInt(game.gameScreen.monsterManager.monsters.size);
-        for (Monster monster: game.gameScreen.monsterManager.monsters
+        output.writeInt(game.gameScreen.monsterManager.monsters.size());
+        for (Monster monster: game.gameScreen.monsterManager.monsters.values()
         ) {
+            output.writeInt(monster.getId());
             output.writeString(monster.getClass().getName());
             output.writeFloat(monster.getPosition().x);
             output.writeFloat(monster.getPosition().y);
@@ -124,7 +125,8 @@ public class Save {
         map.getTiledMap().getLayers().add(layer);
         int monstersSize = input.readInt();
         for (int i = 0; i < monstersSize; i++) {
-            Monster monster = game.gameScreen.generateMonster(input.readString());
+            int monsterId = input.readInt();
+            Monster monster = game.gameScreen.generateMonster(monsterId,input.readString());
             Vector2 vector2 = new Vector2();
             vector2.x = input.readFloat();
             vector2.y = input.readFloat();

@@ -38,6 +38,7 @@ public class MainMenuScreen extends AbstractScreen {
     private final ImageButton[] buttons;
     private final ImageButton cancel;
     private final int buttons_num;
+    private TextButton[] textButtons;
 
     public MainMenuScreen(final MadMath game, final ResourceManager manager){
         super(game, manager);
@@ -54,7 +55,6 @@ public class MainMenuScreen extends AbstractScreen {
         stage.addActor(gametitle);
         gametitle.setZIndex(1);
 
-
         buttons_num = 3;
         buttons = new ImageButton[buttons_num];
         buttons[0] = new ImageButton(manager.startButtonStyle);
@@ -70,8 +70,8 @@ public class MainMenuScreen extends AbstractScreen {
         slTable.setCenterPosition(350,200);
         slTable.setBackground(new TextureRegionDrawable(manager.tablebackground300x300));
         stage.addActor(slTable);
-        VerticalGroup listTable = new VerticalGroup();
-        TextButton[] textButtons = new TextButton[30];
+        Table listTable = new Table();
+        textButtons = new TextButton[30];
         for (int i = 0; i < 30; i++) {
             textButtons[i] = new TextButton("",manager.skin);
             textButtons[i].getLabel().setFontScale(0.5f);
@@ -89,8 +89,7 @@ public class MainMenuScreen extends AbstractScreen {
             } catch (FileNotFoundException e) {
                 textButtons[i].setText("Empty");
             }
-            listTable.addActor(textButtons[i]);
-            listTable.space(10);
+            listTable.add(textButtons[i]).spaceBottom(10).row();
         }
         ScrollPane scrollPane = new ScrollPane(listTable, manager.skin);
         //scrollPane.
@@ -147,6 +146,7 @@ public class MainMenuScreen extends AbstractScreen {
     }
 
     public void resetTitle(){
+        updateSave();
         slTable.setVisible(false);
         cancel.setVisible(false);
         gametitle.setVisible(true);
@@ -189,6 +189,27 @@ public class MainMenuScreen extends AbstractScreen {
             e.printStackTrace();
         }
         switchScreen(game.gameScreen);
+    }
+
+    public void updateSave(){
+        for (int i = 0; i < 30; i++) {
+            try (Input input = new Input(new FileInputStream(i==0?"./save/autosave.bin":"./save/save"+i+".bin"),50<<10);){
+                if(textButtons[i].getText().equals("Empty")){
+                    int finalI = i;
+                    textButtons[i].addListener(new ClickListener(){
+                        @Override
+                        public void clicked(InputEvent event, float x, float y) {
+                            if(!slTable.isVisible()) return;
+                            loadGame(finalI);
+                        }
+                    });
+                }
+                String[] strings = game.save.readTitle(input);
+                textButtons[i].setText((i==0?"AUTOSAVE\n":"SAVE"+i+"\n")+strings[0]+"\n"+strings[1]);
+            } catch (FileNotFoundException e) {
+                textButtons[i].setText("Empty");
+            }
+        }
     }
 
     @Override
