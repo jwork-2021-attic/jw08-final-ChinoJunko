@@ -9,13 +9,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Event;
-import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.DragScrollListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -23,8 +20,9 @@ import com.madmath.core.entity.creature.Player;
 import com.madmath.core.inventory.equipment.Equipment;
 import com.madmath.core.resource.ResourceManager;
 import com.madmath.core.screen.GameScreen;
+import com.madmath.core.serializer.GameTitle;
+import com.madmath.core.serializer.MySerializer;
 
-import javax.swing.plaf.basic.BasicSliderUI;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -93,8 +91,8 @@ public class HUD extends UI{
             textButtons[i] = new TextButton("",manager.skin);
             textButtons[i].getLabel().setFontScale(0.5f);
             try (Input input = new Input(new FileInputStream("./save/save"+(i+1)+".bin"),50<<10);){
-                String[] strings = game.save.readTitle(input);
-                textButtons[i].setText(("SAVE"+(i+1)+"\n")+strings[0]+"\n"+strings[1]);
+                GameTitle gameTitle = MySerializer.defaultKryo.readObject(input,GameTitle.class);
+                textButtons[i].setText(("SAVE" + (i + 1) + "\n") + gameTitle.name +" maplvl:"+gameTitle.mapLevel+" dif:"+gameTitle.factor+ "\nscore:" + gameTitle.score);
             } catch (FileNotFoundException e) {
                 textButtons[i].setText("Empty");
             }
@@ -252,8 +250,8 @@ public class HUD extends UI{
     public void updateSave(){
         for (int i = 0; i < 29; i++) {
             try (Input input = new Input(new FileInputStream("./save/save" + (i + 1) + ".bin"), 50 << 10);) {
-                String[] strings = game.save.readTitle(input);
-                textButtons[i].setText(("SAVE" + (i + 1) + "\n") + strings[0] + "\n" + strings[1]);
+                GameTitle gameTitle = MySerializer.defaultKryo.readObject(input,GameTitle.class);
+                textButtons[i].setText(("SAVE" + (i + 1) + "\n") + gameTitle.name +" maplvl:"+gameTitle.mapLevel+" dif:"+gameTitle.factor+ "\nscore:" + gameTitle.score);
             } catch (FileNotFoundException e) {
                 textButtons[i].setText("Empty");
             }
@@ -323,9 +321,9 @@ public class HUD extends UI{
             e.printStackTrace();
         }
         try (Output output = new Output(new FileOutputStream("./save/"+(index==0?"autosave":"save"+index)+".bin"),50<<10);){
-            game.save.writeTitle(output,gameScreen.map,player);
-            game.save.write(output,player);
-            game.save.write(output,gameScreen.map);
+            MySerializer.defaultKryo.writeObject(output,new GameTitle(gameScreen.map.name,gameScreen.map.mapLevel,gameScreen.map.difficultyFactor, player.score));
+            MySerializer.defaultKryo.writeObject(output,player);
+            MySerializer.defaultKryo.writeObject(output,gameScreen.map);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }

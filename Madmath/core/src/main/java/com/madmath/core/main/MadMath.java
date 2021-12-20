@@ -10,22 +10,16 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.inventory.equipment.Equipment;
 import com.madmath.core.entity.obstacle.Obstacle;
-import com.madmath.core.network.Task;
-import com.madmath.core.save.Save;
+import com.madmath.core.serializer.MySerializer;
 import com.madmath.core.screen.ScoreScreen;
 import com.madmath.core.screen.SelectScreen;
 import com.madmath.core.util.Utils;
 import com.madmath.core.resource.ResourceManager;
 import com.madmath.core.screen.GameScreen;
 import com.madmath.core.screen.MainMenuScreen;
-
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 
 public class MadMath extends Game {
 
@@ -48,15 +42,14 @@ public class MadMath extends Game {
 	public ScoreScreen scoreScreen;
 	public SelectScreen selectScreen;
 
-	public Save save;
-
 	@Override
 	public void create () {
+		MySerializer.game = this;
+		MySerializer.register(MySerializer.defaultKryo);
+
 		batch = new SpriteBatch();
 
 		manager = new ResourceManager();
-
-		Task.taskExc = new Task(this);
 
 		Utils.initUtils(manager);
 
@@ -68,8 +61,6 @@ public class MadMath extends Game {
 		Monster.loadMonsters();
 		Equipment.loadEquipment();
 		Obstacle.loadObstacle();
-
-		save = new Save(this);
 
 		mainMenuScreen = new MainMenuScreen(this, manager);
 		gameScreen = new GameScreen(this,manager);
@@ -86,7 +77,6 @@ public class MadMath extends Game {
 
 	@Override
 	public void render () {
-		Task.taskExc.runTask();
 		fps.setText(Gdx.graphics.getFramesPerSecond() + " fps");
 		super.render();
 	}

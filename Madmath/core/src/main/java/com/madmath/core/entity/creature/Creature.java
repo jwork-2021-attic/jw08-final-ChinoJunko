@@ -196,9 +196,9 @@ public class Creature extends Entity {
             }
         }
         Rectangle nextBox = new Rectangle(box).setPosition(next);
+        Vector2 toAcr = next.cpy().sub(boxOffset).sub(getPosition());
         for (int i = 0; i < gameScreen.map.livingEntity.size; i++) {
-            if(gameScreen.map.livingEntity.get(i)!=null&& gameScreen.map.livingEntity.get(i) != this && gameScreen.map.livingEntity.get(i).box.overlaps(nextBox))  {
-                //System.out.println("false:"+entity);
+            if(gameScreen.map.livingEntity.get(i) != this && gameScreen.map.livingEntity.get(i).box.overlaps(nextBox) && !toAcr.hasOppositeDirection(gameScreen.map.livingEntity.get(i).box.getCenter(new Vector2()).sub(box.getCenter(new Vector2()))))  {
                 return false;
             }
         }

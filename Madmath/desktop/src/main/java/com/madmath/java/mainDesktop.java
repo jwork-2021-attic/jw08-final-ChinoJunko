@@ -13,8 +13,8 @@ public class mainDesktop {
 		config.title = MadMath.TITLE;
 		config.resizable = true;
 		config.vSyncEnabled = false;
-		config.backgroundFPS = 10;
-		config.foregroundFPS = 10;
+		config.backgroundFPS = 144;
+		config.foregroundFPS = 144;
 		new LwjglApplication(new MadMath(), config);
 	}
 }

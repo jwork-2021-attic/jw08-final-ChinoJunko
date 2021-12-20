@@ -16,6 +16,7 @@ public class ActFactory {
         map.put(0,new End());
         map.put(1,new Swing());
         map.put(2,new Switch());
+        map.put(3,new Pick());
         map.forEach((id,act)->{
             stringMap.put(act.getClass().getName(),id);
         });

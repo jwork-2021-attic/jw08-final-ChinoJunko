@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.Array;
 import com.madmath.core.animation.AnimationManager;
 import com.madmath.core.entity.creature.Creature;
 import com.madmath.core.entity.Entity;
+import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.entity.creature.Player;
 import com.madmath.core.expression.Expression;
 import com.madmath.core.inventory.Item;
@@ -31,8 +32,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 
 public class Equipment extends Item {
-
-    public int id;
 
     protected float swingRange;
     protected float swingSpeed;
@@ -140,9 +139,9 @@ public class Equipment extends Item {
                 vector2s[i] = new Vector2();
             }
             try {
-                for (int i = 0; i < (int) owner.gameScreen.map.livingEntity.getClass().getField("size").get(owner.gameScreen.map.livingEntity); i++) {
+                for (int i = 0; i < owner.gameScreen.map.livingEntity.size; i++) {
                     try {
-                        if (owner.gameScreen.map.livingEntity.get(i)instanceof Creature && Objects.requireNonNull(owner.gameScreen.map.livingEntity.get(i)) != owner && !attackedTargets.contains(Objects.requireNonNull(owner.gameScreen.map.livingEntity.get(i)), true)) {
+                        if (owner.gameScreen.map.livingEntity.get(i)instanceof Monster && !attackedTargets.contains(Objects.requireNonNull(owner.gameScreen.map.livingEntity.get(i)), true)) {
                             attackCircle.radius += 50;
                             boolean temp = attackCircle.contains(Objects.requireNonNull(owner.gameScreen.map.livingEntity.get(i)).box.getCenter(vector2s[0]));
                             attackCircle.radius -= 50;
@@ -176,7 +175,7 @@ public class Equipment extends Item {
                 return;
             }
         };
-        float perAttackCheckInterval = 1f/ Gdx.graphics.getFramesPerSecond();
+        float perAttackCheckInterval = 2f/ Gdx.graphics.getFramesPerSecond();
         float perAttackMakeInterval = 0.2f;
 
         //int totalAttackNum = (int) (swingRange/swingSpeed/perAttackCheckInterval);

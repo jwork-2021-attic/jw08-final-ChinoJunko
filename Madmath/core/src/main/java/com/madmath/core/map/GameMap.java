@@ -12,16 +12,21 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.madmath.core.entity.Entity;
 import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.entity.creature.Player;
 import com.madmath.core.entity.obstacle.Obstacle;
 import com.madmath.core.inventory.Item;
 import com.madmath.core.inventory.equipment.Equipment;
+import com.madmath.core.main.MadMath;
 import com.madmath.core.util.Utils;
 import com.madmath.core.resource.ResourceManager;
 import com.madmath.core.screen.GameScreen;
 
+import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
@@ -251,10 +256,132 @@ public class GameMap {
     public void dispose(){
         renderer.dispose();
         tiledMap.dispose();
-        gameScreen.getStage().getActors().clear();
+        livingEntity.forEach(entity -> {if(!(entity instanceof Player))  gameScreen.getStage().getActors().removeValue(entity,true);});
+        livingItem.forEach(item -> {gameScreen.getStage().getActors().removeValue(item,true);});
         gameScreen.monsterManager.reset();
-        if(gameScreen.player!=null) gameScreen.getStage().addActor(gameScreen.player);
         livingEntity.clear();
+        livingEntity.add(gameScreen.player);
+        gameScreen.teammate.forEach((id,player)->{livingEntity.add(player);});
         livingItem.clear();
+    }
+
+    public Item selectItem(int id){
+        Iterator<Item> iterator = livingItem.select(item -> {return id==item.getId();}).iterator();
+        if(iterator.hasNext()) return iterator.next();
+        Array array = new Array();
+        array.addAll(gameScreen.player.weapon);
+        gameScreen.teammate.forEach((integer, player) -> {array.addAll(player.weapon);});
+        Iterator iterator1 = array.select(item -> {return id==((Equipment)item).getId();}).iterator();
+        if(iterator1.hasNext()) return (Item) iterator1.next();
+        return null;
+    }
+
+    public Output writeMap(){
+        Output output = new Output(new byte[30<<10]);
+        writeMap(output);
+        return output;
+    }
+
+    static public GameMap readMap(byte[] buffers, MadMath game){
+        Input input = new Input(buffers);
+        return readMap(input,game);
+    }
+
+    public void writeMap(Output output){
+        output.writeString(name);
+        output.writeInt(mapLevel);
+        output.writeFloat(difficultyFactor);
+        TiledMapTileLayer layer = (TiledMapTileLayer) tiledMap.getLayers().get(0);
+        output.writeInt(layer.getWidth());
+        output.writeInt(layer.getHeight());
+        for (int i = 0; i < layer.getWidth(); i++) {
+            for (int j = 0; j < layer.getHeight(); j++) {
+                if(layer.getCell(i,j)!=null){
+                    output.writeInt(layer.getCell(i,j).getTile().getId());
+                }else{
+                    output.writeInt(-666);
+                }
+            }
+        }
+        output.writeInt(gameScreen.monsterManager.monsters.size());
+        for (Monster monster: gameScreen.monsterManager.monsters.values()
+        ) {
+            output.writeInt(monster.getId());
+            output.writeString(monster.getClass().getName());
+            output.writeFloat(monster.getPosition().x);
+            output.writeFloat(monster.getPosition().y);
+        }
+        int obstacleSize = 0;
+        for (Entity entity: livingEntity
+        ) {
+            if (entity instanceof Obstacle) {
+                obstacleSize++;
+            }
+        }
+        output.writeInt(obstacleSize);
+        for (Entity entity: livingEntity
+        ) {
+            if(entity instanceof Obstacle){
+                output.writeString(entity.getClass().getName());
+                output.writeFloat(entity.getPosition().x);
+                output.writeFloat(entity.getPosition().y);
+            }
+        }
+        output.writeInt(gameScreen.map.livingItem.size);
+        for (Item item: livingItem
+        ) {
+            if(item instanceof Equipment){
+                output.writeString(item.getClass().getName());
+                output.writeFloat(item.getX());
+                output.writeFloat(item.getY());
+                output.writeInt(item.getId());
+            }
+        }
+    }
+
+    static public GameMap readMap(Input input, MadMath game){
+        String name = input.readString();
+        int level = input.readInt();
+        float factor = input.readFloat();
+        game.gameScreen.resetMap();
+        GameMap map = new GameMap(game.gameScreen,name,level,factor);
+        int width = input.readInt();
+        int height = input.readInt();
+        TiledMapTileLayer layer = new TiledMapTileLayer(width,height,16,16);
+        for (int i = 0; i < layer.getWidth(); i++) {
+            for (int j = 0; j < layer.getHeight(); j++) {
+                int tileId = input.readInt();
+                if(tileId == -666) continue;
+                TiledMapTileLayer.Cell cell = new TiledMapTileLayer.Cell();
+                cell.setTile(map.tiledMap.getTileSets().getTile(tileId));
+                layer.setCell(i,j,cell);
+            }
+        }
+        map.getTiledMap().getLayers().add(layer);
+        int monstersSize = input.readInt();
+        for (int i = 0; i < monstersSize; i++) {
+            int monsterId = input.readInt();
+            Monster monster = game.gameScreen.generateMonster(monsterId,input.readString());
+            Vector2 vector2 = new Vector2();
+            vector2.x = input.readFloat();
+            vector2.y = input.readFloat();
+            monster.setPosition(vector2);
+        }
+        int obstacleSize = input.readInt();
+        for (int i = 0; i < obstacleSize; i++) {
+            String obstacleName = input.readString();
+            float x = input.readFloat();
+            float y = input.readFloat();
+            map.createObstacle(obstacleName,x,y);
+        }
+        int equipmentSize = input.readInt();
+        for (int i = 0; i < equipmentSize; i++) {
+            String equipmentName = input.readString();
+            float x = input.readFloat();
+            float y = input.readFloat();
+            Equipment equipment = game.gameScreen.generateEquipment(equipmentName,x,y);
+            equipment.setId(input.readInt());
+        }
+        return map;
     }
 }

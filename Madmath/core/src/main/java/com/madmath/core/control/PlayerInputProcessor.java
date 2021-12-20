@@ -14,7 +14,7 @@ import com.madmath.core.entity.creature.Player;
 import com.madmath.core.screen.AbstractScreen;
 
 public class PlayerInputProcessor extends InputAdapter {
-    Player player;
+    public Player player;
 
     public PlayerInputProcessor(Player player){
         this.player = player;

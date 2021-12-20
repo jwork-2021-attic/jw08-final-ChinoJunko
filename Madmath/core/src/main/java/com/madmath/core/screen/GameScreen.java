@@ -15,21 +15,22 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Sort;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryonet.Server;
 import com.madmath.core.control.PlayerInputProcessor;
-import com.madmath.core.entity.Entity;
 import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.entity.creature.MonsterFactory;
 import com.madmath.core.entity.creature.Player;
-import com.madmath.core.entity.obstacle.Obstacle;
-import com.madmath.core.inventory.Item;
 import com.madmath.core.inventory.equipment.Equipment;
 import com.madmath.core.inventory.equipment.EquipmentFactory;
 import com.madmath.core.main.MadMath;
 import com.madmath.core.map.GameMap;
 import com.madmath.core.entity.obstacle.ObstacleFactory;
-import com.madmath.core.network.Client;
-import com.madmath.core.network.Server;
+import com.madmath.core.network.MyClient;
+import com.madmath.core.network.listener.PlayerActListener;
+import com.madmath.core.network.listener.PlayerConnectListener;
 import com.madmath.core.resource.ResourceManager;
+import com.madmath.core.serializer.GameTitle;
+import com.madmath.core.serializer.MySerializer;
 import com.madmath.core.thread.MonsterThread;
 import com.madmath.core.thread.PlayerThread;
 import com.madmath.core.ui.HUD;
@@ -65,8 +66,8 @@ public class GameScreen extends AbstractScreen{
 
     public Map<Integer,Player> teammate;
     public boolean isOnline = false;
-    public Client client;
-    public Server server;
+    public MyClient myClient;
+    public Server myServer;
 
 
     Label currencyMapMessage;
@@ -115,15 +116,19 @@ public class GameScreen extends AbstractScreen{
 
     @Override
     public void show() {
+        if(isOnline&&myServer!=null){
+            myServer.addListener(new PlayerConnectListener(myServer,game));
+            myServer.addListener(new PlayerActListener(myServer,game));
+        }
         if(state==State.READY){
             if(player==null)    createPlayer();
             resetMap();
             new GameMap(this,"PRIMARY",1,factor);
             map.initTileMap();
-            initMapTitle();
         }
         super.show();
         hud.show();
+        updateMapTitle();
         currencyMapMessage.setPosition(stage.getViewport().getWorldWidth()/2-50, MadMath.V_HEIGHT-20);
         currencyMapMessage.setZIndex(1000);
         state = State.RUNING;
@@ -141,17 +146,24 @@ public class GameScreen extends AbstractScreen{
         if(tlevel>10) s = "CRAZY";
         new GameMap(this,s,tlevel+1,factor);
         map.initTileMap();
-        initMapTitle();
+        updateMapTitle();
         currencyMapMessage.setPosition(stage.getViewport().getWorldWidth()/2-50, MadMath.V_HEIGHT-20);
         currencyMapMessage.setZIndex(1000);
         player.setPosition(map.getPlayerSpawnPoint());
         try (Output output = new Output(new FileOutputStream("./save/autosave.bin"),50<<10);){
-            game.save.writeTitle(output,map,player);
-            game.save.write(output,player);
-            game.save.write(output,map);
+            MySerializer.defaultKryo.writeObject(output,new GameTitle(map.name,map.mapLevel,map.difficultyFactor, player.score));
+            MySerializer.defaultKryo.writeObject(output,player);
+            MySerializer.defaultKryo.writeObject(output,map);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    public void nextMap(GameMap map){
+        updateMapTitle();
+        currencyMapMessage.setPosition(stage.getViewport().getWorldWidth()/2-50, MadMath.V_HEIGHT-20);
+        currencyMapMessage.setZIndex(1000);
+        player.setPosition(map.getPlayerSpawnPoint());
     }
 
     public void resetMap(){
@@ -161,26 +173,13 @@ public class GameScreen extends AbstractScreen{
         }
     }
 
-    public void initMapTitle(){
+    public void updateMapTitle(){
         if(currencyMapMessage!=null)    stage.getActors().removeValue(currencyMapMessage,true);
         currencyMapMessage = new Label("LEVEL "+map.mapLevel+"  "+map.name, new Label.LabelStyle(manager.font, Color.YELLOW ));
         currencyMapMessage.setFontScale(0.5f);
         currencyMapMessage.setVisible(true);
         currencyMapMessage.addAction(Actions.sequence(Actions.delay(5f),Actions.run(() -> currencyMapMessage.setText("   GOOD LUCK!   "))));
         stage.addActor(currencyMapMessage);
-    }
-
-    public void startGameOnline(){
-        if(isOnline){
-            if(client!=null){
-                resetGame();
-                resetMap();
-                executorService.execute(client);
-                state = State.PAUSE;
-            }else if(server!=null){
-                executorService.execute(server);
-            }
-        }
     }
 
     public void resetGame(){
@@ -225,9 +224,7 @@ public class GameScreen extends AbstractScreen{
         stateTime += v;
         currencyDelta = v;
         if(state == State.RUNING){
-            if(!isOnline||server!=null){
-                checkDie();
-            }
+            checkDie();
             playerSemaphore.release();
             monsterSemaphore.release();
             Sort.instance().sort(stage.getRoot().getChildren(), (o2, o1) -> (int)(o1.getUserObject()==null?
@@ -244,11 +241,12 @@ public class GameScreen extends AbstractScreen{
     }
 
     public Player createPlayer(){
-        return addPlayer(new Player(1000,Player.initPlayerAnim(game.manager),this));
+        return addPlayer(new Player(0,Player.initPlayerAnim(game.manager),this));
     }
 
     public Player addPlayer(Player player){
         if(this.player!=null){
+            removeInputProcessor(player);
             stage.getActors().removeValue(this.player,true);
         }
         this.player = player;
@@ -259,6 +257,7 @@ public class GameScreen extends AbstractScreen{
 
     public Player addTeammate(Player mate){
         if((player!=null&&player.getId()==mate.getId())||teammate.get(mate.getId())!=null)  return mate;
+        map.livingEntity.add(mate);
         teammate.put(mate.getId(),mate);
         stage.addActor(mate);
         return mate;
@@ -336,11 +335,18 @@ public class GameScreen extends AbstractScreen{
         }
     }
 
-    public void generateEquipment(String name,float x,float y){
+    @Nullable
+    public Player selectPlayer(int id){
+        if(id==player.getId())return player;
+        return teammate.getOrDefault(id,null);
+    }
+
+    public Equipment generateEquipment(String name,float x,float y){
         Equipment equipment = equipmentFactory.generateEquipmentByName(name);
         equipment.setPosition(x,y);
         stage.addActor(equipment);
         map.livingItem.add(equipment);
+        return equipment;
     }
 
     public Equipment createEquipmentByName(String name){
@@ -366,7 +372,13 @@ public class GameScreen extends AbstractScreen{
     public void switchScreen(Screen screen) {
         super.switchScreen(screen);
         // getViewport().update();
-
+        if(myServer!=null){
+            myServer.close();
+            myServer = null;
+        }else if(myClient!=null){
+            myClient.close();
+            myClient = null;
+        }
     }
 
     @Override
@@ -384,6 +396,16 @@ public class GameScreen extends AbstractScreen{
 
     public void addInputProcessor(InputProcessor inputProcessor){
         multiplexer.addProcessor(0,inputProcessor);
+    }
+
+    public void removeInputProcessor(Player player){
+        for (int i = multiplexer.size()-1; i >= 0; i--) {
+            InputProcessor inputProcessor = multiplexer.getProcessors().get(i);
+            if(inputProcessor instanceof PlayerInputProcessor && ((PlayerInputProcessor) inputProcessor).player == player){
+                multiplexer.removeProcessor(i);
+                break;
+            }
+        }
     }
 
     public static GameScreen getCurrencyGameScreen() {

@@ -5,30 +5,21 @@
 */
 package com.madmath.core.screen;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Array;
 import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.madmath.core.actor.AnimationActor;
-import com.madmath.core.animation.CustomAnimation;
 import com.madmath.core.entity.creature.Player;
 import com.madmath.core.main.MadMath;
 import com.madmath.core.map.GameMap;
 import com.madmath.core.resource.ResourceManager;
-import org.lwjgl.Sys;
+import com.madmath.core.serializer.GameTitle;
+import com.madmath.core.serializer.MySerializer;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 
 
 public class MainMenuScreen extends AbstractScreen {
@@ -76,8 +67,8 @@ public class MainMenuScreen extends AbstractScreen {
             textButtons[i] = new TextButton("",manager.skin);
             textButtons[i].getLabel().setFontScale(0.5f);
             try (Input input = new Input(new FileInputStream(i==0?"./save/autosave.bin":"./save/save"+i+".bin"),50<<10);){
-                String[] strings = game.save.readTitle(input);
-                textButtons[i].setText((i==0?"AUTOSAVE\n":"SAVE"+i+"\n")+strings[0]+"\n"+strings[1]);
+                GameTitle gameTitle = MySerializer.defaultKryo.readObject(input,GameTitle.class);
+                textButtons[i].setText(("SAVE" + i  + "\n") + gameTitle.name +" maplvl:"+gameTitle.mapLevel+" dif:"+gameTitle.factor+ "\nscore:" + gameTitle.score);
                 int finalI = i;
                 textButtons[i].addListener(new ClickListener(){
                     @Override
@@ -179,10 +170,10 @@ public class MainMenuScreen extends AbstractScreen {
         }
         gametitle.setVisible(false);
         try (Input input = new Input(new FileInputStream(index==0?"./save/autosave.bin":"./save/save"+index+".bin"),50<<10);){
-            game.save.readTitle(input);
-            game.gameScreen.addPlayer((Player) game.save.read(input, "Player"));
-            game.save.read(input,"GameMap");
-            game.gameScreen.initMapTitle();
+            MySerializer.defaultKryo.readObject(input,GameTitle.class);
+            game.gameScreen.addPlayer(MySerializer.defaultKryo.readObject(input,Player.class));
+            MySerializer.defaultKryo.readObject(input, GameMap.class);
+            game.gameScreen.updateMapTitle();
             game.gameScreen.state = State.PAUSE;
         } catch (FileNotFoundException e) {
             System.out.println("Cannot load save!");
@@ -204,8 +195,8 @@ public class MainMenuScreen extends AbstractScreen {
                         }
                     });
                 }
-                String[] strings = game.save.readTitle(input);
-                textButtons[i].setText((i==0?"AUTOSAVE\n":"SAVE"+i+"\n")+strings[0]+"\n"+strings[1]);
+                GameTitle gameTitle = MySerializer.defaultKryo.readObject(input,GameTitle.class);
+                textButtons[i].setText(((i==0?"ATUOSAVE":"SAVE" + i) + "\n") + gameTitle.name +" maplvl:"+gameTitle.mapLevel+" dif:"+gameTitle.factor+ "\nscore:" + gameTitle.score);
             } catch (FileNotFoundException e) {
                 textButtons[i].setText("Empty");
             }

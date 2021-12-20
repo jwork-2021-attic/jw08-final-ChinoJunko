@@ -10,6 +10,17 @@ import com.madmath.core.actor.AnimationActor;
 import com.madmath.core.animation.AnimationManager;
 
 public class Item extends AnimationActor {
+
+    public int id;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public Item(AnimationManager animationManager) {
         super(animationManager);
     }

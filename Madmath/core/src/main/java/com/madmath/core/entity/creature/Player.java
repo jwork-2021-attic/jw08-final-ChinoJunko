@@ -78,6 +78,9 @@ public class Player extends Creature{
 
     @Override
     public void act(float delta) {
+        if(this!=gameScreen.player){
+            acts.clear();
+        }
         super.act(delta);
         if(sprint) setPlayMode(AnimationManager.PlayMode.Sprint);
         if(activeWeapon!=null&& !activeWeapon.isSwinging()){
@@ -151,17 +154,27 @@ public class Player extends Creature{
     }
 
     public void addWeapon(Equipment equipment){
-        if(weapon.size<3){
-            weapon.add(equipment);
-        }else {
-            weapon.removeValue(activeWeapon,true);
-            weapon.add(equipment);
-            activeWeapon.beThrown();
-            activeWeapon = null;
+        if(weapon.size>=3){
+            throwWeapon(activeWeapon);
         }
+        weapon.add(equipment);
         equipment.equippedBy(this);
         setWeapon(weapon.indexOf(equipment,true));
         if(gameScreen.map!=null)    gameScreen.map.livingItem.removeValue(equipment,true);
+    }
+
+    public void throwWeapon(Equipment equipment){
+        if(weapon.size>0){
+            int index = weapon.indexOf(equipment,true);
+            weapon.removeValue(equipment,true);
+            equipment.beThrown();
+            if(equipment==activeWeapon){
+                activeWeapon = null;
+                if(weapon.size>0){
+                    setWeapon(Math.min(index,weapon.size-1));
+                }
+            }
+        }
     }
 
     public void switchWeapon(int offset){
@@ -228,6 +241,7 @@ public class Player extends Creature{
         if(pickItem == null )return;
         if(pickItem instanceof Equipment){
             addWeapon((Equipment) pickItem);
+            acts.add(new Pick());
         }
         pickItem = null;
     }
@@ -235,27 +249,6 @@ public class Player extends Creature{
     public void addSubjectiveDirection(Vector2 Direction){
         subjectiveDirection.x = Math.min(Math.max(subjectiveDirection.x + Direction.x,-1),1);
         subjectiveDirection.y = Math.min(Math.max(subjectiveDirection.y + Direction.y,-1f),1f);
-    }
-
-    @Override
-    public boolean isCanMove(Vector2 next){
-        next.add(boxOffset);
-        for (float i = next.x; i <= next.x+box.getWidth(); i += box.getWidth()) {
-            for (float j = next.y; j <= next.y+box.getHeight(); j += box.getHeight()) {
-                if(i< gameScreen.getMap().startPosition.x||i>= gameScreen.getMap().startPosition.x+ gameScreen.getMap().playAreaSize.x||j< gameScreen.getMap().startPosition.y||j>= gameScreen.getMap().startPosition.y+ gameScreen.getMap().playAreaSize.y)  return false;
-                TiledMapTileLayer layer =(TiledMapTileLayer) gameScreen.getMap().getTiledMap().getLayers().get(0);
-                TiledMapTile tile = layer.getCell((int)i/16,(int)j/16).getTile();
-                if(!Utils.accessibleG.contains(tile.getId()))   return false;
-            }
-        }
-        Rectangle nextBox = new Rectangle(box).setPosition(next);
-        for (int i = 0; i < gameScreen.map.livingEntity.size; i++) {
-            if(gameScreen.map.livingEntity.get(i)!=null&& gameScreen.map.livingEntity.get(i) != this && gameScreen.map.livingEntity.get(i).box.overlaps(nextBox))  {
-                //System.out.println("false:"+entity);
-                return false;
-            }
-        }
-        return true;
     }
 
     long slow;
@@ -297,6 +290,7 @@ public class Player extends Creature{
     }
 
     public Output writeAct(Output output){
+        output.writeInt(hp);
         output.writeFloat(getPosition().x);
         output.writeFloat(getPosition().y);
         output.writeFloat(subjectiveDirection.x);
@@ -314,7 +308,12 @@ public class Player extends Creature{
         return output;
     }
 
+    public Output writeAct(byte[] buffers){
+        return writeAct(new Output(buffers));
+    }
+
     public Input readAct(Input input){
+        hp = input.readInt();
         float px = input.readFloat();
         float py = input.readFloat();
         setPosition(new Vector2(px,py));
@@ -329,6 +328,10 @@ public class Player extends Creature{
             act = ActFactory.actFactory.getAct(input.readInt());
         }
         return input;
+    }
+
+    public Input readAct(byte[] buffers){
+        return readAct(new Input(buffers));
     }
 
     public void dispose(){

@@ -7,12 +7,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.esotericsoftware.kryonet.Server;
 import com.madmath.core.main.MadMath;
-import com.madmath.core.network.Client;
-import com.madmath.core.network.Server;
-import com.madmath.core.network.Task;
+import com.madmath.core.network.MyClient;
+import com.madmath.core.network.dto.PlayerConnectDto;
 import com.madmath.core.resource.ResourceManager;
+import com.madmath.core.serializer.MySerializer;
 import com.madmath.core.util.Utils;
+
+import java.io.IOException;
 
 /**
  * @Author: Junko
@@ -70,7 +73,6 @@ public class SelectScreen extends AbstractScreen{
             difButtons[i].addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-                    if(game.gameScreen.isOnline)    game.gameScreen.startGameOnline();
                     game.gameScreen.changeDifficulty((float) (1+0.5* finalI));
                     switchScreen(game.gameScreen);
                 }
@@ -90,8 +92,15 @@ public class SelectScreen extends AbstractScreen{
         olButtons[0].addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.gameScreen.server = new Server(game);
+                game.gameScreen.myServer = new Server(65536, 32768);
+                MySerializer.register(game.gameScreen.myServer);
                 game.gameScreen.isOnline = true;
+                try {
+                    game.gameScreen.myServer.bind(4396);
+                    game.gameScreen.myServer.start();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 selectDifShow();
             }
         });
@@ -101,9 +110,10 @@ public class SelectScreen extends AbstractScreen{
         olButtons[1].addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.gameScreen.client = new Client(game);
+                game.gameScreen.myClient = new MyClient(game);
                 game.gameScreen.isOnline = true;
-                game.gameScreen.startGameOnline();
+                game.gameScreen.myClient.connect();
+                game.gameScreen.myClient.getClient().sendTCP(new PlayerConnectDto());
             }
         });
         olTable.add(olButtons[1]).spaceBottom(20).row();
@@ -148,6 +158,5 @@ public class SelectScreen extends AbstractScreen{
         super.render(v);
         stage.act();
         stage.draw();
-        if(game.gameScreen.isOnline&&game.gameScreen.client!=null&&game.gameScreen.client.finishInit)switchScreen(game.gameScreen);
     }
 }
