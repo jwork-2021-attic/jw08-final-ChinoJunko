@@ -38,9 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class GameScreen extends AbstractScreen{
@@ -65,10 +63,11 @@ public class GameScreen extends AbstractScreen{
     private EquipmentFactory equipmentFactory;
     private ObstacleFactory obstacleFactory;
 
-    public Array<Player> teammate;
+    public Map<Integer,Player> teammate;
     public boolean isOnline = false;
     public Client client;
     public Server server;
+
 
     Label currencyMapMessage;
 
@@ -85,7 +84,7 @@ public class GameScreen extends AbstractScreen{
 
         CurrencyGameScreen = this;
 
-        teammate = new Array<>();
+        teammate = new HashMap<>();
 
         monsterFactory = new MonsterFactory(manager,this);
         monsterManager = new MonsterThread();
@@ -178,9 +177,6 @@ public class GameScreen extends AbstractScreen{
                 resetMap();
                 executorService.execute(client);
                 state = State.PAUSE;
-                while(map==null){
-
-                }
             }else if(server!=null){
                 executorService.execute(server);
             }
@@ -262,8 +258,8 @@ public class GameScreen extends AbstractScreen{
     }
 
     public Player addTeammate(Player mate){
-        if((player!=null&&player.getId()==mate.getId())||teammate.select(player1 -> {return player1.getId()==mate.getId();}).iterator().hasNext())  return mate;
-        teammate.add(mate);
+        if((player!=null&&player.getId()==mate.getId())||teammate.get(mate.getId())!=null)  return mate;
+        teammate.put(mate.getId(),mate);
         stage.addActor(mate);
         return mate;
     }
@@ -279,7 +275,7 @@ public class GameScreen extends AbstractScreen{
             monster.Die();
         });
         if(player.getHp()<=0) player.Die();
-        teammate.forEach(mate->{
+        teammate.forEach((id,mate)->{
             if(mate.getHp()<=0) mate.Die();
         });
     }

@@ -28,6 +28,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class Monster extends Creature{
 
@@ -92,14 +93,22 @@ public abstract class Monster extends Creature{
     }
 
     public void monsterAct(float delta){
-        Player player = gameScreen.player;
-        if(getPosition().dst2(player.getPosition())>90000f) return;
-        Vector2 direction = new Vector2(player.getX()-getX(),player.getY()-getY());
-        direction.x = Math.abs(direction.x)<player.getWidth()/2?0:direction.x>0?inertia:-inertia;
-        direction.y = Math.abs(direction.y)<player.getHeight()/2?0:direction.y>0?inertia:-inertia;
+        AtomicReference<Player> player = new AtomicReference<>(gameScreen.player);
+        AtomicReference<Float> distance = new AtomicReference<>(getPosition().dst2(player.get().getPosition()));
+        gameScreen.teammate.forEach((id,mate)->{
+            float tempDistance = getPosition().dst2(mate.getPosition());
+            if(distance.get() >tempDistance){
+                player.set(mate);
+                distance.set(tempDistance);
+            }
+        });
+        if(distance.get() >90000f) return;
+        Vector2 direction = new Vector2(player.get().getX()-getX(), player.get().getY()-getY());
+        direction.x = Math.abs(direction.x)< player.get().getWidth()/2?0:direction.x>0?inertia:-inertia;
+        direction.y = Math.abs(direction.y)< player.get().getHeight()/2?0:direction.y>0?inertia:-inertia;
         addAcceleration(direction);
         move(delta);
-        attack(player);
+        attack(player.get());
     }
 
     @Override

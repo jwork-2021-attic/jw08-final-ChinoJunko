@@ -1,5 +1,6 @@
 package com.madmath.core.network;
 
+import com.badlogic.gdx.Gdx;
 import com.madmath.core.entity.creature.Player;
 import com.madmath.core.io.MyInput;
 import com.madmath.core.io.MyOutput;
@@ -78,7 +79,7 @@ public class Server implements Runnable{
         while (true){
             String s = scanner.next();
             semaphore.acquire();
-            server.playerAct(s);
+            //server.playerAct(s);
             semaphore.release();
         }
     }
@@ -91,12 +92,47 @@ public class Server implements Runnable{
         });
     }
 
-    public void writePlayer(Player player){
-        tempOutput.write(0,()->{
-            tempOutput.writeInt(Protocol.PlayerCreate.protocolId);
+    public void writeAct(Player player){
+        //System.out.println("ASD");
+        try {
+            semaphore.acquire();
+            tempOutput.write(0,()->{
+                tempOutput.writeInt(Protocol.PlayerAct.protocolId);
+                player.writeAct(tempOutput);
+                //System.out.println(tempOutput.position());
+            });
+            semaphore.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
-            game.save.write(tempOutput,player);
+    public void readAct(int pid){
+        Task.taskExc.addTask(()->{
+            Player player = game.gameScreen.teammate.get(1000+pid);
+            if(player!=null){
+                player.readAct(input);
+            }
+            else {
+                game.gameScreen.player.readAct(input);
+            }
         });
+        Task.taskExc.finishTask();
+    }
+
+    public void writePlayer(Player player){
+        try {
+            semaphore.acquire();
+            tempOutput.write(0,()->{
+                tempOutput.writeInt(Protocol.PlayerCreate.protocolId);
+
+                Task.taskExc.addTask(()->{game.save.write(tempOutput,player);});
+                Task.taskExc.finishTask();
+            });
+            semaphore.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void InitClient(SocketChannel channel) throws IOException {
@@ -104,7 +140,8 @@ public class Server implements Runnable{
         output.clear();
         output.setPosition(position);
         output.writeInt(channelId);
-        game.save.write(output,game.gameScreen.map);
+        Task.taskExc.addTask(()->{game.save.write(output,game.gameScreen.map);});
+        Task.taskExc.finishTask();
         output.getByteBuffer().limit(output.position());
         output.setPosition(position);
         channel.write(output.getByteBuffer());
@@ -112,29 +149,24 @@ public class Server implements Runnable{
         output.getByteBuffer().limit(position);
     }
 
-    public void playerAct(String s){
-        tempOutput.write(0,()->{
-            tempOutput.writeInt(Protocol.PlayerAct.protocolId);
-
-            tempOutput.writeString("Player0 act: " + s);
-        });
-    }
 
     public void syncClient(){
         writePlayer(game.gameScreen.player);
-        game.gameScreen.teammate.forEach(mate->{
+        game.gameScreen.teammate.forEach((id,mate)->{
             writePlayer(mate);
         });
     }
 
     public void loadPlayer(){
-        game.gameScreen.addTeammate(game.save.readPlayer(input));
+        Task.taskExc.addTask(()->{game.gameScreen.addTeammate(game.save.readPlayer(input));});
+        Task.taskExc.finishTask();
     }
 
     public void run() {
         while (true){
             try {
                 output.clear();
+                //System.out.println(output.position()+"QAQ");
                 semaphore.acquire();
                 tempInput.getByteBuffer().flip();
                 tempInput.update();
@@ -143,15 +175,15 @@ public class Server implements Runnable{
                 tempInput.clear();
                 tempOutput.clear();
                 semaphore.release();
-                TimeUnit.MILLISECONDS.sleep(17);
-
-                int nReady = selector.select();
+                //TimeUnit.MILLISECONDS.sleep();
+                //System.out.println(output.position()+"QAQ2");
+                int nReady = selector.select(Gdx.graphics.getFramesPerSecond());
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> it = keys.iterator();
                 while (it.hasNext()) {
                     SelectionKey key = it.next();
                     try {
-
+                        //System.out.println(output.position()+"QAQ3");
                         if (key.isAcceptable()) {
                             SocketChannel socketChannel = ((ServerSocketChannel) key.channel()).accept();
                             socketChannel.configureBlocking(false);
@@ -173,7 +205,7 @@ public class Server implements Runnable{
                                     System.out.println("Size-"+input.readInt());
                                     switch (Protocol.values()[input.readInt()]){
                                         case PlayerAct:
-                                            System.out.println("Player"+pId+" act:" + input.readString());
+                                            readAct(pId);
                                             break;
                                         case PlayerCreate:
                                             loadPlayer();
@@ -219,6 +251,7 @@ public class Server implements Runnable{
 
                     //System.out.println("FUcfojeiofji----"+key.attachment());
                 }
+                //System.out.println(output.position()+"QAQ4");
                 keys.clear();
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();

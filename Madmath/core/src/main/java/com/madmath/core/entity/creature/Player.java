@@ -15,9 +15,13 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.AtomicQueue;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.madmath.core.animation.AnimationManager;
 import com.madmath.core.animation.CustomAnimation;
 import com.madmath.core.control.PlayerInputProcessor;
+import com.madmath.core.entity.Act.*;
 import com.madmath.core.inventory.Item;
 import com.madmath.core.inventory.equipment.Equipment;
 import com.madmath.core.map.TrapTile;
@@ -26,6 +30,9 @@ import com.madmath.core.screen.AbstractScreen;
 import com.madmath.core.screen.GameScreen;
 import com.madmath.core.util.Utils;
 import com.madmath.core.util.myPair;
+
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 public class Player extends Creature{
 
@@ -37,7 +44,7 @@ public class Player extends Creature{
 
     public PlayerInputProcessor inputProcessor;
 
-    private Vector2 subjectiveDirection = new Vector2();
+    private final Vector2 subjectiveDirection = new Vector2();
 
     public float weaponAngle;
 
@@ -50,6 +57,12 @@ public class Player extends Creature{
     protected boolean sprint = false;
 
     static public String alias = "knight_f";
+
+    Queue<Act> acts = new ArrayDeque<>(30);
+
+    public boolean hasActs(){
+        return acts.peek()!=null;
+    }
 
     static public AnimationManager initPlayerAnim(ResourceManager manager){
         return new AnimationManager(new CustomAnimation(0.34f,new Array<>(manager.knight_f_idle_anim16x28[0])),new CustomAnimation(0.17f,new Array<>(manager.knight_f_run_anim16x28[0])),new CustomAnimation(0.09f,new Array<>(manager.knight_f_run_anim16x28[0])));
@@ -126,24 +139,10 @@ public class Player extends Creature{
         return damage;
     }
 
-
-    public void addWeapon(Equipment equipment){
-        if(weapon.size<3){
-            weapon.add(equipment);
-            if(activeWeapon != null)    activeWeapon.setVisible(false);
-        }else {
-            weapon.removeValue(activeWeapon,true);
-            weapon.add(equipment);
-            activeWeapon.beThrown();
-        }
-        activeWeapon = equipment;
-        activeWeapon.equippedBy(this);
-        if(gameScreen.map!=null)    gameScreen.map.livingItem.removeValue(equipment,true);
-    }
-
     public void swingWeapon(){
         if(activeWeapon!=null){
             activeWeapon.use();
+            acts.add(new Swing());
         }
     }
 
@@ -151,18 +150,31 @@ public class Player extends Creature{
         return getHurt(monster.getDamage(),monster.getPosition().cpy(),monster.getKnockback());
     }
 
+    public void addWeapon(Equipment equipment){
+        if(weapon.size<3){
+            weapon.add(equipment);
+        }else {
+            weapon.removeValue(activeWeapon,true);
+            weapon.add(equipment);
+            activeWeapon.beThrown();
+            activeWeapon = null;
+        }
+        equipment.equippedBy(this);
+        setWeapon(weapon.indexOf(equipment,true));
+        if(gameScreen.map!=null)    gameScreen.map.livingItem.removeValue(equipment,true);
+    }
+
     public void switchWeapon(int offset){
         if(weapon.size<2 || activeWeapon.isSwinging())return;
-        activeWeapon.setVisible(false);
-        activeWeapon = weapon.get(((weapon.indexOf(activeWeapon,true)+offset)+weapon.size)%weapon.size);
-        activeWeapon.setVisible(true);
+        setWeapon(((weapon.indexOf(activeWeapon,true)+offset)+weapon.size)%weapon.size);
     }
 
     public void setWeapon(int index){
         if(weapon.size>index){
-            activeWeapon.setVisible(false);
+            if(activeWeapon!=null)  activeWeapon.setVisible(false);
             activeWeapon = weapon.get(index);
             activeWeapon.setVisible(true);
+            acts.add(new Switch());
         }
     }
 
@@ -282,6 +294,41 @@ public class Player extends Creature{
     public void freshSelf(){
         setAcceleration(new Vector2(0,0));
         score = 0;
+    }
+
+    public Output writeAct(Output output){
+        output.writeFloat(getPosition().x);
+        output.writeFloat(getPosition().y);
+        output.writeFloat(subjectiveDirection.x);
+        output.writeFloat(subjectiveDirection.y);
+        output.writeBoolean(sprint);
+        output.writeFloat(weaponAngle);
+        output.writeBoolean(anim_dirt);
+        Act act = acts.poll();
+        while(act!=null){
+            output.writeInt(ActFactory.actFactory.getActId(act));
+            act.write(output,this);
+            act = acts.poll();
+        }
+        output.writeInt(ActFactory.actFactory.getActId(new End()));
+        return output;
+    }
+
+    public Input readAct(Input input){
+        float px = input.readFloat();
+        float py = input.readFloat();
+        setPosition(new Vector2(px,py));
+        subjectiveDirection.x = input.readFloat();
+        subjectiveDirection.y = input.readFloat();
+        sprint = input.readBoolean();
+        weaponAngle = input.readFloat();
+        anim_dirt = input.readBoolean();
+        Act act = ActFactory.actFactory.getAct(input.readInt());
+        while(!(act instanceof End)){
+            act.read(input,this);
+            act = ActFactory.actFactory.getAct(input.readInt());
+        }
+        return input;
     }
 
     public void dispose(){

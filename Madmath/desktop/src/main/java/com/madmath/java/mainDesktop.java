@@ -14,7 +14,7 @@ public class mainDesktop {
 		config.resizable = true;
 		config.vSyncEnabled = false;
 		config.backgroundFPS = 10;
-		config.foregroundFPS = 144;
+		config.foregroundFPS = 10;
 		new LwjglApplication(new MadMath(), config);
 	}
 }

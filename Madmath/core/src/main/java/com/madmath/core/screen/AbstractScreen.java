@@ -19,6 +19,8 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.madmath.core.main.MadMath;
 import com.madmath.core.resource.ResourceManager;
 
+import java.util.concurrent.Semaphore;
+
 public abstract class AbstractScreen implements Screen {
 
     protected final MadMath game;
@@ -27,6 +29,8 @@ public abstract class AbstractScreen implements Screen {
     protected OrthographicCamera camera;
     protected Viewport viewport;
     protected Stage stage;
+
+    //public Semaphore net = new Semaphore(0);
 
     protected State state;
 

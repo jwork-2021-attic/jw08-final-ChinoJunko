@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.madmath.core.main.MadMath;
 import com.madmath.core.network.Client;
 import com.madmath.core.network.Server;
+import com.madmath.core.network.Task;
 import com.madmath.core.resource.ResourceManager;
 import com.madmath.core.util.Utils;
 
@@ -103,7 +104,6 @@ public class SelectScreen extends AbstractScreen{
                 game.gameScreen.client = new Client(game);
                 game.gameScreen.isOnline = true;
                 game.gameScreen.startGameOnline();
-                switchScreen(game.gameScreen);
             }
         });
         olTable.add(olButtons[1]).spaceBottom(20).row();
@@ -148,5 +148,6 @@ public class SelectScreen extends AbstractScreen{
         super.render(v);
         stage.act();
         stage.draw();
+        if(game.gameScreen.isOnline&&game.gameScreen.client!=null&&game.gameScreen.client.finishInit)switchScreen(game.gameScreen);
     }
 }

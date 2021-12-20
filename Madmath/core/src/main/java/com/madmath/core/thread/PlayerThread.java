@@ -20,7 +20,13 @@ public class PlayerThread implements Runnable {
         while (true || gameScreen.getState()!= AbstractScreen.State.END){
             try {
                 gameScreen.playerSemaphore.acquire();
-                if(gameScreen.player!=null)    gameScreen.player.move(gameScreen.getCurrencyDelta());
+                if(gameScreen.player!=null){
+                    if(gameScreen.isOnline){
+                        if(gameScreen.client!=null)  gameScreen.client.writeAct(gameScreen.player);
+                        else if(gameScreen.server!=null)    gameScreen.server.writeAct(gameScreen.player);
+                    }
+                    gameScreen.player.move(gameScreen.getCurrencyDelta());
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

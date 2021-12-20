@@ -73,6 +73,14 @@ public class MyInput extends Input {
         }
     }
     @Override
+    public boolean readBoolean() throws KryoException {
+        try {
+            return super.readBoolean();
+        }finally {
+            byteBuffer.position(position());
+        }
+    }
+    @Override
     public float readFloat() throws KryoException {
         try {
             return super.readFloat();

@@ -58,6 +58,11 @@ public class MyOutput extends Output {
         byteBuffer.position(position());
     }
     @Override
+    public void writeBoolean(boolean value) throws KryoException {
+        super.writeBoolean(value);
+        byteBuffer.position(position());
+    }
+    @Override
     public void writeFloat(float value) throws KryoException {
         super.writeFloat(value);
         byteBuffer.position(position());

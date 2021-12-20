@@ -18,6 +18,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,6 +29,10 @@ import java.util.concurrent.TimeUnit;
 public class Client implements Runnable {
 
     SocketChannel socketChannel;
+
+    public Semaphore semaphore = new Semaphore(1);
+
+    public boolean finishInit = false;
 
     ByteBuffer writeBuffer;
     ByteBuffer readBuffer;
@@ -52,27 +57,47 @@ public class Client implements Runnable {
         new Thread(client).start();
         Scanner scanner = new Scanner(System.in);
         while (true){
-            client.writeAct(scanner.next());
+            //client.writeAct(scanner.next());
         }
     }
 
-    public void writeAct(String s){
-        output.write(id,()->{
-            output.writeInt(Protocol.PlayerAct.protocolId);
-            //System.out.print(s+"   ");
-            output.writeString(s);
-            //System.out.println(output.position());
+    public void writeAct(Player player){
+        try {
+            semaphore.acquire();
+            output.write(id,()->{
+                output.writeInt(Protocol.PlayerAct.protocolId);
+                player.writeAct(output);
+            });
+            semaphore.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void readAct(int pid){
+        Task.taskExc.addTask(()->{
+            Player player = game.gameScreen.teammate.get(1000+pid);
+            if(player!=null){
+                player.readAct(input);
+            }
+            else {
+                game.gameScreen.player.readAct(input);
+            }
         });
+        Task.taskExc.finishTask();
     }
 
     public void loadMap(){
-        game.save.read(input,"GameMap");
-        game.gameScreen.initMapTitle();
-        game.gameScreen.setState(AbstractScreen.State.PAUSE);
+        Task.taskExc.addTask(()->{
+            game.save.read(input,"GameMap");
+            game.gameScreen.initMapTitle();
+            game.gameScreen.setState(AbstractScreen.State.PAUSE);});
+        Task.taskExc.finishTask();
     }
 
     public void loadPlayer(){
-        game.gameScreen.addTeammate(game.save.readPlayer(input));
+        Task.taskExc.addTask(()->{game.gameScreen.addTeammate(game.save.readPlayer(input));});
+        Task.taskExc.finishTask();
     }
 
     public void run() {
@@ -95,26 +120,43 @@ public class Client implements Runnable {
 
             id = input.readInt();
             System.out.print("assigned ID :"+id);
-            System.out.print("    InitMap: ");
-            loadMap();
+            Task.taskExc.addTask(()->{
+                System.out.print("    InitMap: ");
+                game.save.read(input,"GameMap");
+                game.gameScreen.initMapTitle();
+                game.gameScreen.setState(AbstractScreen.State.PAUSE);
 
-            output.write(id,()->{
-                output.writeInt(Protocol.PlayerCreate.protocolId);
+                output.write(id,()->{
+                    output.writeInt(Protocol.PlayerCreate.protocolId);
 
-                Player player = game.gameScreen.createPlayer();
-                player.setId(1000+id);
-                game.save.write(output,player);
+                    Player player = game.gameScreen.createPlayer();
+                    player.setPosition(game.gameScreen.map.getPlayerSpawnPoint());
+                    player.setId(1000+id);
+                    game.save.write(output,player);
+                });
+                System.out.println("Finish Init!");
+                finishInit = true;
             });
+            Task.taskExc.finishTask();
+
+            socketChannel.configureBlocking(false);
 
             while (true) {
-                output.flip();
-                if(output.getByteBuffer().limit()>0) {
-                    socketChannel.write(output.getByteBuffer());
+                try {
+                    semaphore.acquire();
+                    output.flip();
+                    if(output.getByteBuffer().limit()>0) {
+                        socketChannel.write(output.getByteBuffer());
+                    }
+                    output.clear();
+                    semaphore.release();
+                } catch (InterruptedException e){
+                    e.printStackTrace();
                 }
-                output.clear();
 
                 input.clear();
                 socketChannel.read(input.getByteBuffer());
+                //System.out.println("111");
                 input.flip();
                 while (input.remaining()>0){
                     int socketId = input.readInt();
@@ -137,6 +179,7 @@ public class Client implements Runnable {
                             break;
                         case PlayerAct:
                             //System.out.println("Player"+socketId+" act:");
+                            readAct(socketId);
                             break;
                         case Receive:
                             if(input.readInt()==id){

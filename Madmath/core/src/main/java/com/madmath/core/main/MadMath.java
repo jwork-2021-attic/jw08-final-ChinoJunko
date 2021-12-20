@@ -15,6 +15,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.inventory.equipment.Equipment;
 import com.madmath.core.entity.obstacle.Obstacle;
+import com.madmath.core.network.Task;
 import com.madmath.core.save.Save;
 import com.madmath.core.screen.ScoreScreen;
 import com.madmath.core.screen.SelectScreen;
@@ -55,6 +56,8 @@ public class MadMath extends Game {
 
 		manager = new ResourceManager();
 
+		Task.taskExc = new Task(this);
+
 		Utils.initUtils(manager);
 
 		fps = new Label("", new Label.LabelStyle(manager.font, Color.YELLOW ));
@@ -83,6 +86,7 @@ public class MadMath extends Game {
 
 	@Override
 	public void render () {
+		Task.taskExc.runTask();
 		fps.setText(Gdx.graphics.getFramesPerSecond() + " fps");
 		super.render();
 	}
