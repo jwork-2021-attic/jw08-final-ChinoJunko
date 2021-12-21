@@ -5,8 +5,13 @@
 */
 package com.madmath.core.thread;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.Array;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.madmath.core.entity.creature.Imp;
 import com.madmath.core.entity.creature.Monster;
+import com.madmath.core.network.dto.MonsterActDto;
 import com.madmath.core.screen.AbstractScreen;
 import com.madmath.core.screen.GameScreen;
 
@@ -38,9 +43,20 @@ public class MonsterThread implements Runnable {
                     Monster monster = (Monster) monsterToDie.pop();
                     monsters.remove(monster.getId(),monster);
                 }
+                MonsterActDto monsterActDto = new MonsterActDto();
+                Output output = new Output(new byte[10<<10]);
                 monsters.values().forEach(monster -> {
                     monster.monsterAct(gameScreen.getCurrencyDelta());
+                    if(gameScreen.myServer!=null)   {
+                        output.writeInt(monster.getId());
+                        monster.writeAct(output);
+                    }
                 });
+                if(gameScreen.myServer!=null){
+                    monsterActDto.bufferSize = output.position();
+                    monsterActDto.buffer = output.getBuffer();
+                    gameScreen.myServer.sendToAllTCP(monsterActDto);
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

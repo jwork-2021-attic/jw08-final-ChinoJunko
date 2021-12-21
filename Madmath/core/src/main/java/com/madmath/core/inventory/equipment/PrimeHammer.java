@@ -3,6 +3,7 @@ package com.madmath.core.inventory.equipment;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.madmath.core.expression.Expression;
+import com.madmath.core.expression.Mul;
 
 import java.util.HashSet;
 
@@ -25,10 +26,6 @@ public class PrimeHammer extends Equipment{
 
     private HashSet<Integer> Prime;
 
-    @Override
-    public boolean canAttack(Expression expression) {
-        return Prime.contains(expression.getValue());
-    }
 
     @Override
     public void initSelf() {
@@ -36,8 +33,12 @@ public class PrimeHammer extends Equipment{
         swingRange = 4800;
         swingSpeed = 2400;
         knockbackFactor = 12;
-        damage = 30;
         initPrime();
+        expression = new Mul(1.01f);
+        name = "PrimeHammer";
+        text[0] = "Mul by 1.01";
+        text[1] = "Small Changes Make Big Impact";
+        attackCheckCount = 10;
     }
 
     private void initPrime(){

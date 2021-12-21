@@ -41,6 +41,7 @@ public class MySerializer {
         kryo.register(GameInitializationDto.class, new Serializer<GameInitializationDto>() {
             @Override
             public void write(Kryo kryo, Output output, GameInitializationDto gameInitializationDto) {
+                output.writeLong(gameInitializationDto.offset);
                 kryo.writeObject(output,gameInitializationDto.player);
                 output.writeInt(gameInitializationDto.bufferSize);
                 output.writeBytes(gameInitializationDto.buffer,0,gameInitializationDto.bufferSize);
@@ -50,6 +51,7 @@ public class MySerializer {
             @Override
             public GameInitializationDto read(Kryo kryo, Input input, Class aClass) {
                 GameInitializationDto gameInitializationDto = new GameInitializationDto();
+                gameInitializationDto.offset = input.readLong();
                 gameInitializationDto.player = kryo.readObject(input,Player.class);
                 gameInitializationDto.bufferSize = input.readInt();
                 gameInitializationDto.buffer = input.readBytes(gameInitializationDto.bufferSize);
@@ -123,10 +125,24 @@ public class MySerializer {
                 return playerActDto;
             }
         });
+        kryo.register(MonsterActDto.class, new com.esotericsoftware.kryo.Serializer<MonsterActDto>() {
+            @Override
+            public void write(Kryo kryo, Output output, MonsterActDto monsterActDto) {
+                output.writeInt(monsterActDto.bufferSize);
+                output.writeBytes(monsterActDto.buffer,0,monsterActDto.bufferSize);
+            }
+
+            @Override
+            public MonsterActDto read(Kryo kryo, Input input, Class aClass) {
+                MonsterActDto monsterActDto = new MonsterActDto();
+                monsterActDto.bufferSize = input.readInt();
+                monsterActDto.buffer = input.readBytes(monsterActDto.bufferSize);
+                return monsterActDto;
+            }
+        });
         kryo.register(MapCreateDto.class, new com.esotericsoftware.kryo.Serializer<MapCreateDto>() {
             @Override
             public void write(Kryo kryo, Output output, MapCreateDto mapCreateDto) {
-                output.writeInt(mapCreateDto.id);
                 output.writeInt(mapCreateDto.bufferSize);
                 output.writeBytes(mapCreateDto.buffer,0,mapCreateDto.bufferSize);
             }
@@ -134,7 +150,6 @@ public class MySerializer {
             @Override
             public MapCreateDto read(Kryo kryo, Input input, Class aClass) {
                 MapCreateDto mapCreateDto = new MapCreateDto();
-                mapCreateDto.id = input.readInt();
                 mapCreateDto.bufferSize = input.readInt();
                 mapCreateDto.buffer = input.readBytes(mapCreateDto.bufferSize);
                 return mapCreateDto;

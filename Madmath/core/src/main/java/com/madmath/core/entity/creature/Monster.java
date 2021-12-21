@@ -10,14 +10,15 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Array;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.madmath.core.animation.AnimationManager;
 import com.madmath.core.animation.CustomAnimation;
-import com.madmath.core.expression.Add;
 import com.madmath.core.expression.Damage;
-import com.madmath.core.expression.Expression;
 import com.madmath.core.inventory.equipment.Equipment;
 import com.madmath.core.resource.ResourceManager;
 import com.madmath.core.screen.GameScreen;
@@ -40,8 +41,9 @@ public abstract class Monster extends Creature{
 
     protected float knockback;
 
-    Expression expression;
     Label label;
+    boolean isNeg;
+    int lastHit;
 
     static public int TextureWidth;
     static public int TextureHeight;
@@ -80,16 +82,29 @@ public abstract class Monster extends Creature{
         super.initSelf();
         knockback = 0.5f;
         damage = 1;
-        expression = new Add();
-        //label = new Label("",new Label.LabelStyle(ResourceManager.defaultManager.font,Color.YELLOW));
-        //label.setFontScale((getWidth()+getHeight()+100)/600f);
-        //label.setText(expression.toString());
-        //label.setVisible(false);
+        isNeg = false;
+        label = new Label("",new Label.LabelStyle(ResourceManager.defaultManager.font,Color.YELLOW));
+        label.setFontScale(getWidth()/64f,getHeight()/64f);
+        label.setVisible(true);
+    }
+
+    @Override
+    protected void setStage(Stage stage) {
+        super.setStage(stage);
+        if(stage!=null) stage.addActor(label);
+    }
+
+    public void updateLabel(){
+        float per = Math.max(0f,((float) hp)/(float) maxHp);
+        label.setText(Integer.toString(isNeg?-hp:hp));
+        label.setColor(isNeg?per:0.5f,isNeg?0.5f:per,0.2f,1f);
+        label.setPosition(getPosition().x, getPosition().y+getHeight());
     }
 
     @Override
     public void act(float delta) {
         super.act(delta);
+        updateLabel();
     }
 
     public void monsterAct(float delta){
@@ -97,7 +112,7 @@ public abstract class Monster extends Creature{
         AtomicReference<Float> distance = new AtomicReference<>(getPosition().dst2(player.get().getPosition()));
         gameScreen.teammate.forEach((id,mate)->{
             float tempDistance = getPosition().dst2(mate.getPosition());
-            if(distance.get() >tempDistance){
+            if((mate.isAlive() && distance.get() >tempDistance) || !player.get().isAlive()){
                 player.set(mate);
                 distance.set(tempDistance);
             }
@@ -111,18 +126,27 @@ public abstract class Monster extends Creature{
         attack(player.get());
     }
 
-    @Override
     public int getHurt(Equipment equipment) {
         //if(!equipment.canAttack(expression)||hp<=0)  return 0;
         if(hp<=0) return 0;
-        new Damage(this,equipment.getDamage());
-        return super.getHurt(equipment);
+
+        lastHit = equipment.expression.eval(lastHit);
+        lastHit = isNeg? Math.min(0,lastHit):Math.max(0,lastHit);
+        Damage damage = new Damage(this, equipment.expression);
+        if(lastHit==0){
+            damage.setFontScale(0.5f);
+            damage.setColor(Color.GRAY.cpy());
+            damage.setText("Miss");
+            return 0;
+        }
+        return super.getHurt(isNeg?-lastHit:lastHit,new Vector2(equipment.owner.getPosition()),equipment.getKnockbackFactor());
     }
 
     @Override
     public void Die() {
         super.Die();
-        gameScreen.player.score+=(level*50000+gameScreen.map.mapLevel)*gameScreen.map.difficultyFactor;
+        gameScreen.getStage().getActors().removeValue(label,true);
+        gameScreen.player.score+=(level*7+gameScreen.map.mapLevel)*gameScreen.map.difficultyFactor;
         //gameScreen.getStage().getActors().removeValue(this,true);
         //gameScreen.getStage().getActors().removeValue(label,true);
         gameScreen.monsterManager.removeMonster(this);
@@ -256,5 +280,31 @@ public abstract class Monster extends Creature{
         }
     }
 
+    public Output writeAct(Output output){
+        output.writeInt(hp);
+        output.writeFloat(getPosition().x);
+        output.writeFloat(getPosition().y);
+        output.writeFloat(currentDirection.x);
+        output.writeFloat(currentDirection.y);
+        return output;
+    }
+
+    public Output writeAct(byte[] buffers){
+        return writeAct(new Output(buffers));
+    }
+
+    public Input readAct(Input input){
+        hp = input.readInt();
+        float px = input.readFloat();
+        float py = input.readFloat();
+        setPosition(new Vector2(px,py));
+        currentDirection.x = input.readFloat();
+        currentDirection.y = input.readFloat();
+        return input;
+    }
+
+    public Input readAct(byte[] buffers){
+        return readAct(new Input(buffers));
+    }
 
 }

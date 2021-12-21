@@ -57,7 +57,6 @@ public class GameMap {
         gameScreen.map = this;
         livingEntity = new Array<>();
         livingItem = new Array<>();
-        livingEntity.add(gameScreen.player);
         this.name = name;
         this.mapLevel = mapLevel;
         this.difficultyFactor = difficultyFactor;
@@ -77,6 +76,12 @@ public class GameMap {
             background[i].addAction(Actions.sequence(Actions.moveTo(moveDistance *i,0),Actions.moveTo(-moveDistance,0,(i+1)* moveTime / backgroundNum),Actions.forever(Actions.sequence(Actions.moveTo((backgroundNum -1)* moveDistance,0),Actions.moveTo(-moveDistance,0, moveTime)))));
             getGameScreen().getStage().addActor(background[i]);
         }
+    }
+
+    public void putPlayer(Player player){
+        player.Resurrect(Math.max(30,player.getHp()*100/ player.getMaxHp()));
+        player.setPosition(playerSpawnPoint);
+        livingEntity.add(player);
     }
 
     public TiledMapTileSet getNewTileSet(){
@@ -114,7 +119,6 @@ public class GameMap {
     }
 
     public void initTileMap(){
-        gameScreen.player.setPosition(playerSpawnPoint);
         initButtomLayer();
         initObstacle();
         initEntities();

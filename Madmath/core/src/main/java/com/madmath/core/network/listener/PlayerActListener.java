@@ -36,7 +36,7 @@ public class PlayerActListener extends AbstractListener<PlayerActDto> {
             if(playerActDto.id!=game.gameScreen.player.getId())game.gameScreen.selectPlayer(playerActDto.id).readAct(playerActDto.buffer);
         });
         if(isServer){
-            server.sendToAllTCP(playerActDto);
+            server.sendToAllExceptTCP(connection.getID(),playerActDto);
         }
     }
 }

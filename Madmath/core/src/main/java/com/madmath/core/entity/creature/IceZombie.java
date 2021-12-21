@@ -48,6 +48,7 @@ public class IceZombie extends Monster{
         level = 2;
         maxHp = 230;
         hp = 230;
+        isNeg = true;
     }
 
 }

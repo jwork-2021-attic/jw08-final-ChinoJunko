@@ -41,6 +41,8 @@ public class Utils {
             "EvenSword",
             "SevenSword",
             "PrimeHammer",
+            "GoldenSword",
+            "Spear",
     };
 
     static public String[] AllDefaultObstacleSort = new String[]{

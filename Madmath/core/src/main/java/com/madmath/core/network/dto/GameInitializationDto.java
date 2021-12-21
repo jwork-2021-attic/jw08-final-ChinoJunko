@@ -10,6 +10,7 @@ import com.madmath.core.map.GameMap;
  * @Date: 20/12/2021 下午8:18
  */
 public class GameInitializationDto implements Dto{
+    public long offset;
     public Player player;
     public int bufferSize;
     public byte[] buffer;

@@ -5,6 +5,7 @@
 */
 package com.madmath.core.screen;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -20,6 +21,9 @@ import com.madmath.core.serializer.MySerializer;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 
 public class MainMenuScreen extends AbstractScreen {
@@ -63,6 +67,11 @@ public class MainMenuScreen extends AbstractScreen {
         stage.addActor(slTable);
         Table listTable = new Table();
         textButtons = new TextButton[30];
+        try {
+            Files.createDirectories(Paths.get("./save"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         for (int i = 0; i < 30; i++) {
             textButtons[i] = new TextButton("",manager.skin);
             textButtons[i].getLabel().setFontScale(0.5f);
@@ -171,9 +180,11 @@ public class MainMenuScreen extends AbstractScreen {
         gametitle.setVisible(false);
         try (Input input = new Input(new FileInputStream(index==0?"./save/autosave.bin":"./save/save"+index+".bin"),50<<10);){
             MySerializer.defaultKryo.readObject(input,GameTitle.class);
-            game.gameScreen.addPlayer(MySerializer.defaultKryo.readObject(input,Player.class));
+            Player player = game.gameScreen.addPlayer(MySerializer.defaultKryo.readObject(input,Player.class));
+            Vector2 position = player.getPosition();
             MySerializer.defaultKryo.readObject(input, GameMap.class);
             game.gameScreen.updateMapTitle();
+            player.setPosition(position);
             game.gameScreen.state = State.PAUSE;
         } catch (FileNotFoundException e) {
             System.out.println("Cannot load save!");
@@ -185,7 +196,7 @@ public class MainMenuScreen extends AbstractScreen {
     public void updateSave(){
         for (int i = 0; i < 30; i++) {
             try (Input input = new Input(new FileInputStream(i==0?"./save/autosave.bin":"./save/save"+i+".bin"),50<<10);){
-                if(textButtons[i].getText().equals("Empty")){
+                if(textButtons[i].getText().toString().equals("Empty")){
                     int finalI = i;
                     textButtons[i].addListener(new ClickListener(){
                         @Override

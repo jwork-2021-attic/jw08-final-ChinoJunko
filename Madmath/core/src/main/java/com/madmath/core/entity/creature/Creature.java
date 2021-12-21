@@ -29,7 +29,7 @@ public class Creature extends Entity {
 
     protected boolean pauseAnim = false;
 
-
+    private boolean isAlive = true;
     //positive right and up
     protected Vector2 currentDirection = new Vector2(0,0);
 
@@ -153,9 +153,6 @@ public class Creature extends Entity {
         return getHurt(tile.trigger(this),new Vector2(position).sub(new Vector2(1,1)),tile.getKnockbackFactor());
     }
 
-    public int getHurt(Equipment equipment){
-        return getHurt(equipment.getDamage(),new Vector2(equipment.owner.getPosition()),equipment.getKnockbackFactor());
-    }
 
     public int getHurt(int damage, Vector2 sufferFrom, float knockbackFactor){
         canMove = false;
@@ -171,7 +168,16 @@ public class Creature extends Entity {
     }
 
     public void Die(){
+        isAlive = false;
+    }
 
+    public void Resurrect(int Percent){
+        hp = (Percent*maxHp)/100;
+        isAlive = true;
+    }
+
+    public boolean isAlive(){
+        return isAlive;
     }
 
     public Array<myPair> getTileOnFoot(Vector2 position){
@@ -198,7 +204,7 @@ public class Creature extends Entity {
         Rectangle nextBox = new Rectangle(box).setPosition(next);
         Vector2 toAcr = next.cpy().sub(boxOffset).sub(getPosition());
         for (int i = 0; i < gameScreen.map.livingEntity.size; i++) {
-            if(gameScreen.map.livingEntity.get(i) != this && gameScreen.map.livingEntity.get(i).box.overlaps(nextBox) && !toAcr.hasOppositeDirection(gameScreen.map.livingEntity.get(i).box.getCenter(new Vector2()).sub(box.getCenter(new Vector2()))))  {
+            if(gameScreen.map.livingEntity.get(i)!=null&&gameScreen.map.livingEntity.get(i) != this && gameScreen.map.livingEntity.get(i).box.overlaps(nextBox) && !toAcr.hasOppositeDirection(gameScreen.map.livingEntity.get(i).box.getCenter(new Vector2()).sub(box.getCenter(new Vector2()))))  {
                 return false;
             }
         }
@@ -233,6 +239,10 @@ public class Creature extends Entity {
 
     public String getName() {
         return name;
+    }
+
+    public int getHurt(Equipment equipment) {
+        return 0;
     }
 
     public enum State{

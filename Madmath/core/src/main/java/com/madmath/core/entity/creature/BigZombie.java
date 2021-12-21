@@ -56,6 +56,7 @@ public class BigZombie extends Monster{
         maxHp = 1000;
         hp = 1000;
         toughness = 0.7f;
+        isNeg = true;
     }
 
 }

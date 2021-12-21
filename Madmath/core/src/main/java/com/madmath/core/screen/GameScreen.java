@@ -26,6 +26,7 @@ import com.madmath.core.main.MadMath;
 import com.madmath.core.map.GameMap;
 import com.madmath.core.entity.obstacle.ObstacleFactory;
 import com.madmath.core.network.MyClient;
+import com.madmath.core.network.dto.MapCreateDto;
 import com.madmath.core.network.listener.PlayerActListener;
 import com.madmath.core.network.listener.PlayerConnectListener;
 import com.madmath.core.resource.ResourceManager;
@@ -41,12 +42,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GameScreen extends AbstractScreen{
 
     static private GameScreen CurrencyGameScreen;
 
-    HUD hud;
+    public HUD hud;
 
     public GameMap map;
 
@@ -68,7 +70,6 @@ public class GameScreen extends AbstractScreen{
     public boolean isOnline = false;
     public MyClient myClient;
     public Server myServer;
-
 
     Label currencyMapMessage;
 
@@ -125,6 +126,7 @@ public class GameScreen extends AbstractScreen{
             resetMap();
             new GameMap(this,"PRIMARY",1,factor);
             map.initTileMap();
+            putPlayers();
         }
         super.show();
         hud.show();
@@ -138,7 +140,18 @@ public class GameScreen extends AbstractScreen{
         camera.zoom =  0.7f;
     }
 
+    public void putPlayers(){
+        if(map==null)   return;
+        map.putPlayer(player);
+        teammate.forEach((id,mate)->{
+            map.putPlayer(mate);
+        });
+    }
+
     public void nextMap(){
+        if(myClient!=null){
+            return;
+        }
         int tlevel = map.mapLevel;
         resetMap();
         String s = "PRIMARY";
@@ -146,10 +159,10 @@ public class GameScreen extends AbstractScreen{
         if(tlevel>10) s = "CRAZY";
         new GameMap(this,s,tlevel+1,factor);
         map.initTileMap();
+        putPlayers();
         updateMapTitle();
         currencyMapMessage.setPosition(stage.getViewport().getWorldWidth()/2-50, MadMath.V_HEIGHT-20);
         currencyMapMessage.setZIndex(1000);
-        player.setPosition(map.getPlayerSpawnPoint());
         try (Output output = new Output(new FileOutputStream("./save/autosave.bin"),50<<10);){
             MySerializer.defaultKryo.writeObject(output,new GameTitle(map.name,map.mapLevel,map.difficultyFactor, player.score));
             MySerializer.defaultKryo.writeObject(output,player);
@@ -157,13 +170,20 @@ public class GameScreen extends AbstractScreen{
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+        if(myServer!=null){
+            MapCreateDto mapCreateDto = new MapCreateDto();
+            Output output = map.writeMap();
+            mapCreateDto.bufferSize = output.position();
+            mapCreateDto.buffer = output.getBuffer();
+            myServer.sendToAllTCP(mapCreateDto);
+        }
     }
 
     public void nextMap(GameMap map){
+        putPlayers();
         updateMapTitle();
         currencyMapMessage.setPosition(stage.getViewport().getWorldWidth()/2-50, MadMath.V_HEIGHT-20);
         currencyMapMessage.setZIndex(1000);
-        player.setPosition(map.getPlayerSpawnPoint());
     }
 
     public void resetMap(){
@@ -194,6 +214,7 @@ public class GameScreen extends AbstractScreen{
     }
 
     public void updateCamera(){
+        if(map==null)   return;
         if(Math.abs(camera.zoom-1f)>0.01f) {
             camera.position.x = Math.min(Math.max(player.getX()+(0.5f-0.382f)*camera.zoom*stage.getViewport().getWorldWidth(), 0.5f * camera.zoom * stage.getViewport().getWorldWidth()),map.playAreaSize.x-0.5f* camera.zoom*stage.getViewport().getWorldWidth());
             camera.position.y = Math.min(Math.max(player.getY()-(0.5f-0.382f)*camera.zoom*stage.getViewport().getWorldHeight(), 0.5f * camera.zoom * stage.getViewport().getWorldHeight()),(1-0.5f* camera.zoom)*stage.getViewport().getWorldHeight());
@@ -235,9 +256,11 @@ public class GameScreen extends AbstractScreen{
             stage.act(v);
         }
         update(v);
-        map.render(v);
-        stage.draw();
-        hud.render(v);
+        if(map!=null){
+            map.render(v);
+            stage.draw();
+            hud.render(v);
+        }
     }
 
     public Player createPlayer(){
@@ -273,10 +296,18 @@ public class GameScreen extends AbstractScreen{
         toDie.forEach(monster -> {
             monster.Die();
         });
-        if(player.getHp()<=0) player.Die();
+        AtomicBoolean gameOver = new AtomicBoolean(true);
+        if(player.getHp()<=0 && player.isAlive()) player.Die();
+        else gameOver.set(false);
         teammate.forEach((id,mate)->{
-            if(mate.getHp()<=0) mate.Die();
+            if(mate.getHp()<=0 && mate.isAlive()) mate.Die();
+            else gameOver.set(false);
         });
+        if(gameOver.get()){
+            switchScreen(game.scoreScreen);
+            resetMap();
+            resetGame();
+        }
     }
 
     public void createMonsters(float factor) {

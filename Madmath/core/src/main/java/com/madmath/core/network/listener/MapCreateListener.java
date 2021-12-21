@@ -3,6 +3,7 @@ package com.madmath.core.network.listener;
 import com.badlogic.gdx.Gdx;
 import com.esotericsoftware.kryonet.Connection;
 import com.madmath.core.main.MadMath;
+import com.madmath.core.map.GameMap;
 import com.madmath.core.network.dto.MapCreateDto;
 
 /**
@@ -21,6 +22,6 @@ public class MapCreateListener extends AbstractListener<MapCreateDto> {
 
     @Override
     public void accept(Connection connection, MapCreateDto mapCreateDto) {
-        //Gdx.app.postRunnable(()->{game.gameScreen.nextMap(mapCreateDto.map);});
+        Gdx.app.postRunnable(()->{game.gameScreen.nextMap(GameMap.readMap(mapCreateDto.buffer,game));});
     }
 }

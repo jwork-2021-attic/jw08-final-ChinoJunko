@@ -56,7 +56,7 @@ public class ScoreScreen extends AbstractScreen{
 
     @Override
     public void show() {
-        label2.setText(Integer.toString(game.gameScreen.player.score));
+        label2.setText(game.gameScreen.hud.getCurrentScore());
         super.show();
     }
 

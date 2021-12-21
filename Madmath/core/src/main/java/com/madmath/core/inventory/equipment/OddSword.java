@@ -22,16 +22,21 @@ public class OddSword extends Equipment{
     }
 
     @Override
-    public boolean canAttack(Expression expression) {
-        return expression.getValue()%2==1;
+    public boolean use() {
+        if(isSwinging())    return false;
+        if(anim_dirt) rotateBy(90);
+        else rotateBy(-90);
+        return super.use();
     }
 
     @Override
     public void initSelf() {
         super.initSelf();
-        swingRange = 190;
-        swingSpeed = 600;
+        swingRange = 30;
+        swingSpeed = 300;
         knockbackFactor = 4;
-        damage = 50;
+        name = "OddSword";
+        text[0] = "Inc 5 per time";
+        text[1] = "Slow but firm strides";
     }
 }

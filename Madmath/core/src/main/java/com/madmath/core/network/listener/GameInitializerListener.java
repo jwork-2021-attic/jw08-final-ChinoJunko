@@ -5,6 +5,7 @@ import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.madmath.core.entity.creature.Player;
 import com.madmath.core.main.MadMath;
+import com.madmath.core.map.AnimTile;
 import com.madmath.core.map.GameMap;
 import com.madmath.core.network.dto.GameInitializationDto;
 import com.madmath.core.screen.AbstractScreen;
@@ -28,11 +29,12 @@ public class GameInitializerListener extends AbstractListener<GameInitialization
 
     @Override
     public void accept(Connection connection, GameInitializationDto gameInitializationDto) {
-
+        AnimTile.syncTime(gameInitializationDto.offset);
         /* Draw the screen to start the game. */
         Gdx.app.postRunnable(() -> {
             game.gameScreen.addPlayer(gameInitializationDto.player);
             GameMap.readMap(gameInitializationDto.buffer,game);
+            game.gameScreen.putPlayers();
             gameInitializationDto.teammates.forEach(teammate->{
                 game.gameScreen.addTeammate((Player) teammate);
             });
@@ -42,6 +44,7 @@ public class GameInitializerListener extends AbstractListener<GameInitialization
             client.addListener(new PlayerActListener(client,game));
             client.addListener(new MapCreateListener(game));
             client.addListener(new PlayerCreateListener(game));
+            client.addListener(new MonsterActListener(client,game));
         });
     }
 }

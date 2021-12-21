@@ -21,6 +21,9 @@ public class MyClient {
 
     private MadMath game;
 
+    public String Ip;
+    public int Port=4396;
+
     public MyClient(MadMath game) {
         this.game = game;
         client = new Client(65536, 32768);
@@ -49,7 +52,7 @@ public class MyClient {
             Thread.sleep(ms);
         }
         try {
-            client.connect(15000, "127.0.0.1", 4396);
+            client.connect(15000, Ip, Port);
         } catch (IOException ex) {
             tryConnection(ms * 2, ms > 3000);
             ex.printStackTrace();

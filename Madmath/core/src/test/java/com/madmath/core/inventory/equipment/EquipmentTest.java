@@ -20,17 +20,7 @@ public class EquipmentTest {
 
     @Injectable Equipment equipment;
 
-    @Test
-    public void getDamage() {
-        new Expectations() {
-            {
-                equipment.getDamage();
-                result = equipment.damage;
-            }
-        };
-        int damage = equipment.getDamage();
-        Assert.assertTrue(damage==equipment.damage);
-    }
+
 
     @Test
     public void getItemPosition() {

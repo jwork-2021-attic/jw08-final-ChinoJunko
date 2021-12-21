@@ -6,6 +6,7 @@
 package com.madmath.core.entity.creature;
 
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.maps.tiled.TiledMapTile;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
@@ -143,7 +144,7 @@ public class Player extends Creature{
     }
 
     public void swingWeapon(){
-        if(activeWeapon!=null){
+        if(activeWeapon!=null&&isAlive()){
             activeWeapon.use();
             acts.add(new Swing());
         }
@@ -230,15 +231,27 @@ public class Player extends Creature{
     @Override
     public void Die() {
         super.Die();
-        hp = maxHp;
+        clearActions();
+        addAction(Actions.sequence(Actions.color(color.cpy()),Actions.alpha(0.3f)));
+        attackable = false;
+        movable = true;
         slowSound.pause(slow);
         fastSound.pause(fast);
-        gameScreen.switchScreen(gameScreen.getGame().scoreScreen);
-        gameScreen.resetGame();
+        gameScreen.map.livingEntity.removeValue(this,true);
+
+    }
+
+    @Override
+    public void Resurrect(int Percent) {
+        super.Resurrect(Percent);
+        addAction(Actions.alpha(1f));
+        attackable = true;
+        if(!gameScreen.map.livingEntity.contains(this,true))gameScreen.map.livingEntity.add(this);
+        acts.add(new Resurrect());
     }
 
     public void pickUp(){
-        if(pickItem == null )return;
+        if(pickItem == null || !isAlive())return;
         if(pickItem instanceof Equipment){
             addWeapon((Equipment) pickItem);
             acts.add(new Pick());
@@ -262,8 +275,8 @@ public class Player extends Creature{
         score = 0;
         weapon = new Array<>(3);
         speed = 48f;
-        maxHp = 80;
-        hp = 80;
+        maxHp = 100;
+        hp = 100;
         box = new Rectangle(0,0,12,7);
         boxOffset = new Vector2(2,0);
         pickArrow = new Image(new TextureRegionDrawable(gameScreen.getManager().arrow21x21));

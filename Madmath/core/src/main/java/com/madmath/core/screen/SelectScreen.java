@@ -2,9 +2,7 @@ package com.madmath.core.screen;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.esotericsoftware.kryonet.Server;
@@ -110,10 +108,23 @@ public class SelectScreen extends AbstractScreen{
         olButtons[1].addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.gameScreen.myClient = new MyClient(game);
-                game.gameScreen.isOnline = true;
-                game.gameScreen.myClient.connect();
-                game.gameScreen.myClient.getClient().sendTCP(new PlayerConnectDto());
+                TextField textField = new TextField("", manager.dialogSkin);
+
+                Dialog dialog = new Dialog("save in this slot?",manager.dialogSkin){
+                    @Override
+                    protected void result(Object object) {
+                        if((boolean)object){
+                            game.gameScreen.myClient = new MyClient(game);
+                            game.gameScreen.myClient.Ip = textField.getText();
+                            game.gameScreen.isOnline = true;
+                            game.gameScreen.myClient.connect();
+                            game.gameScreen.myClient.getClient().sendTCP(new PlayerConnectDto());
+                        }
+                    }
+                }.button("join",true).button("cancel",false).show(stage);
+                dialog.row();
+                dialog.add(textField);
+                dialog.setSize(300,128);
             }
         });
         olTable.add(olButtons[1]).spaceBottom(20).row();

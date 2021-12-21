@@ -21,6 +21,7 @@ import com.madmath.core.entity.creature.Creature;
 import com.madmath.core.entity.Entity;
 import com.madmath.core.entity.creature.Monster;
 import com.madmath.core.entity.creature.Player;
+import com.madmath.core.expression.Add;
 import com.madmath.core.expression.Expression;
 import com.madmath.core.inventory.Item;
 import com.madmath.core.resource.ResourceManager;
@@ -43,8 +44,14 @@ public class Equipment extends Item {
 
     public Player owner = null;
 
-    public int damage;
+    public Expression expression;
+
     public int knockbackFactor;
+
+    public int attackCheckCount;
+
+    public String name;
+    public String[] text;
 
     static public String alias;
 
@@ -71,17 +78,16 @@ public class Equipment extends Item {
         addAction(Actions.forever(Actions.sequence(Actions.moveBy(0,8,1.8f),Actions.moveBy(0,-8,1.8f))));
     }
 
-    public int getDamage() {
-        return damage;
-    }
 
     public void initSelf(){
         pickBox = new Rectangle(0,0,40,40);
         attackCircle = new Circle(0,0,getHeight());
         swingRange = 220;
         swingSpeed = 500;
-        damage = 50;
         color = this.getColor().cpy();
+        expression = new Add(5);
+        text = new String[2];
+        attackCheckCount = 3;
     }
 
     @Override
@@ -118,10 +124,6 @@ public class Equipment extends Item {
         super.draw(batch, parentAlpha);
     }
 
-    public boolean canAttack(Expression expression){
-        return true;
-    }
-
     @Override
     public boolean canPickUp(Vector2 position) {
         return owner==null&&pickBox.contains(position);
@@ -147,7 +149,7 @@ public class Equipment extends Item {
                             attackCircle.radius -= 50;
                             Creature creature =(Creature) owner.gameScreen.map.livingEntity.get(i);
                             if (!temp) continue;
-                            if (Math.abs(getRotation() % 360 - vector2s[0].sub(owner.box.getCenter(vector2s[1])).angle()) > swingRange)
+                            if (Math.abs((getRotation()+90) % 360 - vector2s[0].sub(owner.box.getCenter(vector2s[1])).angle()) > swingRange)
                                 continue;
                             for (int j = 0; j < 4; j++) {
                                 Objects.requireNonNull(creature).box.getPosition(vector2s[j]);
@@ -176,7 +178,7 @@ public class Equipment extends Item {
             }
         };
         float perAttackCheckInterval = 2f/ Gdx.graphics.getFramesPerSecond();
-        float perAttackMakeInterval = 0.2f;
+        float perAttackMakeInterval = (swingRange/swingSpeed)/(float) attackCheckCount;
 
         //int totalAttackNum = (int) (swingRange/swingSpeed/perAttackCheckInterval);
         Runnable attackClear = ()-> attackedTargets.clear();

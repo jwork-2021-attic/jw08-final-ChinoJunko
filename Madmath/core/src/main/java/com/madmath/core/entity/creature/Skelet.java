@@ -48,6 +48,7 @@ public class Skelet extends Monster{
         level = 2;
         maxHp = 200;
         hp = 200;
+        isNeg = true;
     }
 
 }

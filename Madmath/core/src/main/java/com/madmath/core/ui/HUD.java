@@ -51,10 +51,13 @@ public class HUD extends UI{
     Equipment[] weapons;
 
     int maxHeart = 70;
-    Label Health;
+
 
     Label monsterCount;
     Label currentScore;
+
+    Window window;
+    Label[] weaponIntro;
 
     VerticalGroup verticalGroup;
 
@@ -195,13 +198,26 @@ public class HUD extends UI{
         slTable.add(new Container<>(scrollPane)).row();
         slTable.add(backbutton).padBottom(10);
 
+        HorizontalGroup horizontalGroup = new HorizontalGroup();
         weaponBoxs = new Container[3];
         weapons = new Equipment[3];
         for (int i = 0; i < 3; i++) {
             weaponBoxs[i] =new Container<Actor>(new Image(manager.contain_box_144x144));
             weaponBoxs[i].setBackground(new TextureRegionDrawable(manager.contain_box_144x144));
-            table.add(weaponBoxs[i]).space(30);
+            horizontalGroup.addActor(weaponBoxs[i]);
+            horizontalGroup.space(30);
         }
+        Table table1 = new Table();
+        table1.add(horizontalGroup).row();
+        window = new Window("EmptyHand",manager.dialogSkin);
+        weaponIntro = new Label[2];
+        weaponIntro[0] = window.add("FIRE PUNCH").getActor();
+        weaponIntro[0].setFontScale(0.5f);
+        window.row();
+        weaponIntro[1] = window.add("").getActor();
+        weaponIntro[1].setFontScale(0.5f);
+        table1.add(window).expandX();
+        table.add(table1).expand();
 
         fullHeart = new Image[maxHeart];
         halfHeart = new Image[maxHeart];
@@ -237,7 +253,7 @@ public class HUD extends UI{
         verticalGroup = new VerticalGroup();
         verticalGroup.addActor(monsterCount);
         verticalGroup.addActor(currentScore);
-        table.add(verticalGroup).expand().left();
+        table.add(verticalGroup);
         //dialog.setSize();
         //Health = new Label("",new Label.LabelStyle(manager.font, Color.WHITE ));
         //Health.setFontScale(0.5f);
@@ -259,14 +275,14 @@ public class HUD extends UI{
     }
 
     public void showMenu(){
-        gameScreen.pause();
+        if(!gameScreen.isOnline)gameScreen.pause();
         menuButton.setVisible(false);
         menuTable.setVisible(true);
         Gdx.input.setInputProcessor(multiplexer);
     }
 
     public void hideMenu(){
-        gameScreen.resume();
+        if(!gameScreen.isOnline)gameScreen.resume();
         menuButton.setVisible(true);
         menuTable.setVisible(false);
         slTable.setVisible(false);
@@ -304,6 +320,9 @@ public class HUD extends UI{
             }
 
             if(i== player.weapon.indexOf(player.activeWeapon,true)){
+                window.setTitle(player.activeWeapon.name);
+                weaponIntro[0].setText(player.activeWeapon.text[0]);
+                weaponIntro[1].setText(player.activeWeapon.text[1]);
                 weaponBoxs[i].setColor(player.activeWeapon.color.cpy());
                 weaponBoxs[i].getActor().setColor(player.activeWeapon.color.cpy());
             }else {
@@ -315,11 +334,6 @@ public class HUD extends UI{
     }
 
     public void saveGame(int index){
-        try {
-            Files.createDirectories(Paths.get("./save"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         try (Output output = new Output(new FileOutputStream("./save/"+(index==0?"autosave":"save"+index)+".bin"),50<<10);){
             MySerializer.defaultKryo.writeObject(output,new GameTitle(gameScreen.map.name,gameScreen.map.mapLevel,gameScreen.map.difficultyFactor, player.score));
             MySerializer.defaultKryo.writeObject(output,player);
@@ -336,6 +350,10 @@ public class HUD extends UI{
                 weaponBoxs[i].removeActor(weaponBoxs[i].getActor());
             }
         }
+    }
+
+    public String getCurrentScore() {
+        return currentScore.getText().toString();
     }
 
     @Override

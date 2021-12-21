@@ -13,11 +13,10 @@ import com.madmath.core.entity.creature.Monster;
  */
 public class Damage extends Label {
 
-    public Damage(Monster monster, int damage){
-        this(Integer.toString(damage),new LabelStyle(monster.gameScreen.getManager().font, Color.YELLOW));
+    public Damage(Monster monster, Expression expression){
+        this((expression.getResult()>0?"-":"+") + Math.abs(expression.getResult()), new LabelStyle(monster.gameScreen.getManager().font, expression.getColor()));
         monster.getStage().addActor(this);
-        //setZIndex(5000);
-        setFontScale((damage+150)/450f);
+        setFontScale( (float) Math.log10(2+(Math.abs(expression.getResult())/70f)));
         addAction(Actions.sequence(Actions.moveTo(monster.getCenterX(),monster.getY()+monster.getHeight()),
                 Actions.addAction(Actions.moveBy(0,32,1f)),
                 Actions.addAction(Actions.fadeOut(1f)),

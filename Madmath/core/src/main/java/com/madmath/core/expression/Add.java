@@ -1,5 +1,7 @@
 package com.madmath.core.expression;
 
+import com.badlogic.gdx.graphics.Color;
+
 import java.util.Random;
 
 /**
@@ -7,30 +9,21 @@ import java.util.Random;
  * @Email: imaizumikagerouzi@foxmail.com
  * @Date: 5/12/2021 下午11:29
  */
-public class Add implements Expression{
+public class Add extends AbstarctExpression{
     int A;
-    int B;
 
-    public Add(int a,int b){
+    public Add(int a){
         A = a;
-        B = b;
-    }
-
-    public Add(int bound){
-        this(new Random().nextInt(bound)+1, new Random().nextInt(bound)+1);
-    }
-
-    public Add(){
-        this(9);
     }
 
     @Override
-    public int getValue() {
-        return A+B;
+    public int eval(int B) {
+        result = B + A;
+        return result;
     }
 
     @Override
-    public String toString() {
-        return A + "+" + B ;
+    public String toString(int B) {
+        return "-(" + B + "+" + A + ")";
     }
 }

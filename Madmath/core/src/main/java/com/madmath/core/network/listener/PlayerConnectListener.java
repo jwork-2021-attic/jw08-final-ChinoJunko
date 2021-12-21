@@ -7,6 +7,7 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Server;
 import com.madmath.core.entity.creature.Player;
 import com.madmath.core.main.MadMath;
+import com.madmath.core.map.AnimTile;
 import com.madmath.core.network.dto.GameInitializationDto;
 import com.madmath.core.network.dto.PlayerConnectDto;
 import com.madmath.core.network.dto.PlayerCreateDto;
@@ -39,6 +40,7 @@ public class PlayerConnectListener extends AbstractListener<PlayerConnectDto> {
             Array<Player> teammates = new Array<>();
             game.gameScreen.teammate.forEach((id,mate)->{teammates.add(mate);});
             teammates.add(game.gameScreen.player);
+            gameInitializationDto.offset = AnimTile.getLastTiledMapRenderTime();
             gameInitializationDto.player = player;
             Output output = game.gameScreen.map.writeMap();
             gameInitializationDto.bufferSize = output.position();

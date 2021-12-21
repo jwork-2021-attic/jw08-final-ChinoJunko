@@ -2,6 +2,8 @@ package com.madmath.core.inventory.equipment;
 
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.madmath.core.expression.Add;
+import com.madmath.core.expression.Cst;
 import com.madmath.core.expression.Expression;
 
 /**
@@ -21,17 +23,17 @@ public class SevenSword extends Equipment{
         super(id, textureRegion, sound);
     }
 
-    @Override
-    public boolean canAttack(Expression expression) {
-        return expression.getValue()%7==0;
-    }
 
     @Override
     public void initSelf() {
         super.initSelf();
-        swingRange = 360;
+        swingRange = 205;
         swingSpeed = 410;
         knockbackFactor = 20;
-        damage = 100;
+        expression = new Cst(77);
+        name = "SevenSword";
+        text[0] = "Constant 77";
+        text[1] = "Seven is a nice number. A week has 7 day...";
+        attackCheckCount = 1;
     }
 }

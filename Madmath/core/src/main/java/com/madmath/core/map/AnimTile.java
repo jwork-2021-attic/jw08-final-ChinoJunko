@@ -27,12 +27,21 @@ public class AnimTile implements TiledMapTile {
     private long frameCount;
     private static long initialTimeOffset = TimeUtils.millis();
 
+    public static void syncTime(long lastTime){
+        long offset = lastTime-lastTiledMapRenderTime;
+        lastTiledMapRenderTime += offset;
+        initialTimeOffset -= offset;
+    }
+
+    public static long getLastTiledMapRenderTime() {
+        return lastTiledMapRenderTime;
+    }
+
     public AnimTile(float interval, Array<StaticTiledMapTile> frameTiles) {
         this.blendMode = BlendMode.ALPHA;
-        this.frameCount = 0L;
         this.frameTiles = frameTiles;
         this.animationInterval = interval;
-        this.frameCount = (long)frameTiles.size;
+        this.frameCount = frameTiles.size;
     }
 
     public long getCurrentFrameIndex()  {

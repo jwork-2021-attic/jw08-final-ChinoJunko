@@ -30,6 +30,10 @@ public class Entity extends AnimationActor {
         this(animationManager,GameScreen.getCurrencyGameScreen());
     }
 
+    public Entity(AnimationManager animationManager, GameScreen gameScreen){
+        this(animationManager,gameScreen,new Vector2(0,0));
+    }
+
     public Entity(AnimationManager animationManager, GameScreen gameScreen, Vector2 position){
         super(animationManager);
         this.gameScreen = gameScreen;
@@ -37,9 +41,7 @@ public class Entity extends AnimationActor {
         initSelf();
     }
 
-    public Entity(AnimationManager animationManager, GameScreen gameScreen){
-        this(animationManager,gameScreen,new Vector2(0,0));
-    }
+
 
     public void initSelf() {
     }

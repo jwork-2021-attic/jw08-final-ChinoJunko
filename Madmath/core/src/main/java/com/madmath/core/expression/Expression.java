@@ -1,5 +1,7 @@
 package com.madmath.core.expression;
 
+import com.badlogic.gdx.graphics.Color;
+
 /**
  * @Author: Junko
  * @Email: imaizumikagerouzi@foxmail.com
@@ -7,7 +9,11 @@ package com.madmath.core.expression;
  */
 public interface Expression {
 
-    public int getValue();
+    public int getResult();
 
-    public String toString();
+    public Color getColor();
+
+    public int eval(int B);
+
+    public String toString(int B);
 }

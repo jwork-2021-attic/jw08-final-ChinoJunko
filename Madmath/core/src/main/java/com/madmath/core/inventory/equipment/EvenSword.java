@@ -3,6 +3,7 @@ package com.madmath.core.inventory.equipment;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.madmath.core.expression.Expression;
+import com.madmath.core.expression.Sub;
 
 /**
  * @Author: Junko
@@ -22,16 +23,14 @@ public class EvenSword extends Equipment{
     }
 
     @Override
-    public boolean canAttack(Expression expression) {
-        return expression.getValue()%2==0;
-    }
-
-    @Override
     public void initSelf() {
         super.initSelf();
         swingRange = 220;
         swingSpeed = 500;
         knockbackFactor = 6;
-        damage = 50;
+        expression = new Sub(5);
+        name = "EvenSword";
+        text[0] = "Sub 5 per time";
+        text[1] = "People treat me as a freak, but they need me after all.";
     }
 }
